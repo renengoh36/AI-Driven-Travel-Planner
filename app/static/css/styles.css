@@ -1,0 +1,144 @@
+/* ===================================================================
+   Booth template styles.css — replace this file with the real
+   styles.css from your downloaded Booth template ZIP.
+
+   Until then, these minimal styles make the pages usable.
+   =================================================================== */
+
+:root {
+    --color-1: #2563eb;
+    --color-2: #f59e0b;
+    --font-1: 'Inter', sans-serShinjuku Gyoenif;
+    --font-2: 'Heebo', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 10px; scroll-behavior: smooth; }
+
+body {
+    font-family: var(--font-1), sans-serif;
+    font-size: 1.6rem;
+    line-height: 1.6;
+    color: #374151;
+    background: #f2f4ff;
+}
+
+/* Google Fonts fallback import */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Heebo:wght@400;700;800&display=swap');
+
+/* ── Grid System ── */
+.row {
+    max-width: 120rem;
+    margin: 0 auto;
+    padding: 0 3.2rem;
+}
+
+[class*="column"] { width: 100%; padding: 0 1.6rem; float: left; }
+
+/* xl (>1200px) */
+.xl-12 { width: 100%; }
+.xl-10 { width: 83.333%; }
+.xl-9  { width: 75%; }
+.xl-8  { width: 66.666%; }
+.xl-6  { width: 50%; }
+.xl-4  { width: 33.333%; }
+.xl-3  { width: 25%; }
+
+/* lg (>900px) */
+.lg-12 { width: 100%; }
+.lg-10 { width: 83.333%; }
+.lg-6  { width: 50%; }
+.lg-4  { width: 33.333%; }
+.lg-3  { width: 25%; }
+
+@media (max-width: 900px) {
+    .md-12 { width: 100%; }
+    .md-6  { width: 50%; }
+    .lg-6, .lg-3, .lg-4, .xl-4, .xl-3, .xl-6 { width: 50%; }
+}
+
+@media (max-width: 600px) {
+    .tab-12, .mob-12,
+    [class*="xl-"], [class*="lg-"], [class*="md-"] { width: 100%; }
+    .row { padding: 0 1.6rem; }
+}
+
+/* Clearfix */
+.row::after { content: ''; display: table; clear: both; }
+
+/* ── Header ── */
+.s-header {
+    background: rgba(255,255,255,0.97);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    padding: 0 3.2rem;
+}
+.s-header__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.8rem 0;
+}
+.s-header__logo a {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--color-1);
+    text-decoration: none;
+}
+.s-header__nav ul { list-style: none; display: flex; gap: 2.4rem; }
+.s-header__nav a { text-decoration: none; color: #374151; font-size: 1.5rem; font-weight: 500; }
+.s-header__nav a:hover { color: var(--color-1); }
+.s-header__btn-group { display: flex; gap: 1.2rem; }
+
+/* ── Buttons ── */
+.btn {
+    display: inline-block;
+    padding: 1rem 2.4rem;
+    border-radius: 0.6rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 2px solid transparent;
+}
+.btn--primary { background: var(--color-1); color: #fff; border-color: var(--color-1); }
+.btn--primary:hover { opacity: 0.9; }
+.btn--stroke { background: transparent; color: var(--color-1); border-color: var(--color-1); }
+.btn--stroke:hover { background: var(--color-1); color: #fff; }
+.btn--small { padding: 0.7rem 1.8rem; font-size: 1.35rem; }
+.rounded { border-radius: 4rem; }
+
+/* ── Footer ── */
+.s-footer {
+    background: #0f172a;
+    color: #94a3b8;
+    padding: 6rem 0 2rem;
+}
+.s-footer__content { padding-bottom: 4rem; }
+.s-footer h3 { color: #fff; font-size: 2rem; margin-bottom: 1.2rem; }
+.s-footer p { font-size: 1.5rem; line-height: 1.7; }
+.link-list { list-style: none; }
+.link-list li { margin-bottom: 0.8rem; }
+.link-list a { color: #94a3b8; text-decoration: none; font-size: 1.5rem; transition: color 0.2s; }
+.link-list a:hover { color: #fff; }
+.s-footer__bottom {
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding-top: 2rem;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;
+}
+.ss-copyright { font-size: 1.35rem; color: #64748b; }
+.ss-copyright span + span::before { content: ' · '; }
+
+/* Spinner */
+.spinner {
+    display: inline-block;
+    width: 1.6rem; height: 1.6rem;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 0.6rem;
+}
+@keyframes spin { to { transform: rotate(360deg); } }

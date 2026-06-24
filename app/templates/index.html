@@ -1,0 +1,757 @@
+{% extends "base.html" %}
+{% block title %}Pengo — Plan Your Perfect Trip{% endblock %}
+
+{% block head %}
+<style>
+/* ── PUBLIC NAV ── */
+.pub-nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+    padding: 0 4rem;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 7.2rem;
+    /* Gradient backdrop so white text is always readable over any hero image */
+    background: linear-gradient(180deg, rgba(0,0,0,0.55) 0%, transparent 100%);
+    transition: background .3s, box-shadow .3s;
+}
+.pub-nav.scrolled { background: rgba(15,23,42,.96); box-shadow: 0 2px 20px rgba(0,0,0,.3); }
+.pub-nav-logo { font-size: 2.8rem; font-weight: 900; color: #fff; text-decoration: none; transition: color .3s; display:flex; align-items:center; gap:.8rem; }
+.pub-nav.scrolled .pub-nav-logo { color: #fff; }
+.pub-nav-logo .logo-wm { color: inherit; }
+.pub-nav-logo .logo-go { color: var(--pengo-amber); }
+.pub-nav-logo img { height: 3.2rem; width: auto; display: none; }
+.pub-nav-logo img.loaded { display: block; }
+.pub-nav-links { display: flex; align-items: center; gap: 3.2rem; }
+.pub-nav-links a { font-size: 1.5rem; font-weight: 600; color: rgba(255,255,255,.9); text-decoration: none; transition: color .2s; }
+.pub-nav.scrolled .pub-nav-links a { color: rgba(255,255,255,.8); }
+.pub-nav-links a:hover { color: #fff; }
+.pub-nav.scrolled .pub-nav-links a:hover { color: #fff; }
+.pub-nav-btns { display: flex; gap: 1.2rem; }
+.nav-btn-login { padding: .8rem 2rem; border: 2px solid rgba(255,255,255,.5); color: #fff; border-radius: .6rem; text-decoration: none; font-size: 1.45rem; font-weight: 600; transition: all .2s; }
+.nav-btn-login:hover { border-color: #fff; background: rgba(255,255,255,.15); }
+.pub-nav.scrolled .nav-btn-login { border-color: rgba(255,255,255,.35); color: rgba(255,255,255,.9); }
+.pub-nav.scrolled .nav-btn-login:hover { border-color: #fff; color: #fff; background: rgba(255,255,255,.1); }
+.nav-btn-signup { padding: .8rem 2.4rem; background: var(--pengo-amber); color: #fff; border-radius: .6rem; text-decoration: none; font-size: 1.45rem; font-weight: 700; transition: opacity .2s; }
+.nav-btn-signup:hover { opacity: .9; }
+
+/* ── HERO SLIDER ── */
+.hero-slider { position: relative; width: 100%; height: 100vh; overflow: hidden; min-height: 64rem; }
+.hero-slide {
+    position: absolute; inset: 0;
+    background-size: cover; background-position: center;
+    opacity: 0; transition: opacity 0.7s ease;
+}
+.hero-slide.active { opacity: 1; }
+.hero-slide::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to right, rgba(0,0,0,.65) 0%, rgba(0,0,0,.2) 60%, transparent 100%); }
+/* Fallback gradients if images are missing */
+.hero-slide-1 { background: linear-gradient(135deg,#0f2e6e 0%,#1a4fbf 50%,#0f2e6e 100%); background-image: url("{{ url_for('static', filename='images/hero-1.jpg') }}"); background-size:cover; }
+.hero-slide-2 { background: linear-gradient(135deg,#065535 0%,#0a8c56 50%,#065535 100%); background-image: url("{{ url_for('static', filename='images/hero-2.jpg') }}"); background-size:cover; }
+.hero-slide-3 { background: linear-gradient(135deg,#5c1a5a 0%,#8b2a86 50%,#5c1a5a 100%); background-image: url("{{ url_for('static', filename='images/hero-3.jpg') }}"); background-size:cover; }
+.hero-slide-4 { background: linear-gradient(135deg,#7a2400 0%,#c73e00 50%,#7a2400 100%); background-image: url("{{ url_for('static', filename='images/hero-4.jpg') }}"); background-size:cover; }
+
+.hero-content {
+    position: absolute; inset: 0; z-index: 2;
+    display: flex; align-items: center; justify-content: flex-start;
+    padding: 0 4rem; padding-top: 7.2rem;
+    max-width: 120rem; margin: 0 auto; left: 0; right: 0;
+    pointer-events: none; /* arrows (z-index:3) must receive clicks */
+}
+.hero-text { max-width: 70rem; pointer-events: auto; }
+.hero-actions { pointer-events: auto; }
+.hero-city-tag {
+    display: inline-flex; align-items: center; gap: .6rem;
+    background: rgba(255,255,255,.15); backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,.3);
+    color: #fff; font-size: 1.3rem; font-weight: 700;
+    padding: .5rem 1.4rem; border-radius: 2rem; margin-bottom: 2.4rem;
+    letter-spacing: .06em; text-transform: uppercase;
+    transition: opacity .5s;
+}
+.hero-text h1 {
+    font-size: clamp(4.4rem, 6.5vw, 8rem);
+    font-weight: 900; color: #fff; line-height: 1.05;
+    letter-spacing: -.02em; margin-bottom: 2rem;
+}
+.hero-text h1 em { font-style: normal; color: var(--pengo-amber); }
+.hero-text p {
+    font-size: clamp(1.6rem, 2vw, 2rem); color: rgba(255,255,255,.85);
+    line-height: 1.6; margin-bottom: 4rem; max-width: 54rem;
+}
+.hero-actions { display: flex; gap: 1.6rem; flex-wrap: wrap; }
+.hero-btn-main { padding: 1.6rem 4rem; background: var(--pengo-blue); color: #fff; border-radius: .8rem; font-size: 1.7rem; font-weight: 700; text-decoration: none; transition: transform .2s, box-shadow .2s; }
+.hero-btn-main:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(37,99,235,.5); }
+.hero-btn-sec { padding: 1.6rem 4rem; background: transparent; color: #fff; border: 2px solid rgba(255,255,255,.5); border-radius: .8rem; font-size: 1.7rem; font-weight: 600; text-decoration: none; transition: border-color .2s; }
+.hero-btn-sec:hover { border-color: #fff; }
+
+/* Slider dots */
+.slider-dots { position: absolute; bottom: 3.2rem; left: 50%; transform: translateX(-50%); z-index: 3; display: flex; gap: .8rem; }
+.slider-dot { width: .8rem; height: .8rem; background: rgba(255,255,255,.4); border-radius: 2rem; cursor: pointer; transition: all .3s; border: none; }
+.slider-dot.active { width: 2.8rem; background: #fff; }
+/* Arrows */
+.slider-arrow { position: absolute; top: 50%; transform: translateY(-50%); z-index: 3; background: rgba(255,255,255,.15); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,.3); color: #fff; border-none; width: 4.8rem; height: 4.8rem; border-radius: 50%; font-size: 1.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .2s; }
+.slider-arrow:hover { background: rgba(255,255,255,.3); }
+.slider-prev { left: 2.4rem; }
+.slider-next { right: 2.4rem; }
+
+/* Scroll indicator */
+.scroll-hint { position: absolute; bottom: 3.2rem; right: 3.2rem; z-index: 3; display: flex; flex-direction: column; align-items: center; gap: .6rem; color: rgba(255,255,255,.6); font-size: 1.2rem; letter-spacing: .1em; text-transform: uppercase; }
+.scroll-hint-line { width: 1px; height: 3.2rem; background: rgba(255,255,255,.4); animation: scrollPulse 2s infinite; }
+@keyframes scrollPulse { 0%,100%{opacity:.3} 50%{opacity:1} }
+
+/* ── QUICK STATS ── */
+.s-stats { padding: 4rem 0; background: #eef2ff; border-bottom: 1px solid #e0e7ff; }
+.stats-row { display: flex; gap: 0; flex-wrap: wrap; justify-content: space-around; }
+.stat-item { text-align: center; padding: 1.6rem 3.2rem; flex: 1; min-width: 14rem; }
+.stat-item .val { font-size: 3.6rem; font-weight: 900; color: var(--pengo-blue); line-height: 1; }
+.stat-item .lbl { font-size: 1.35rem; color: #64748b; margin-top: .4rem; text-transform: uppercase; letter-spacing: .08em; }
+.stat-divider { width: 1px; background: #e2e8f0; align-self: stretch; margin: 1rem 0; }
+
+/* ── HOW IT WORKS ── */
+.s-how {
+    padding: 10rem 0;
+    background: #c7d7f7 url("{{ url_for('static', filename='images/steps-bg.jpg') }}") center/cover no-repeat;
+    position: relative;
+}
+.s-how::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: rgba(197, 215, 247, 0.70);
+}
+.s-how .row { position: relative; z-index: 1; }
+.s-how .section-tag { background: #bfdbfe; color: var(--pengo-blue); }
+.s-how .section-header h2 { color: #0f172a; }
+.s-how .section-header p { color: #475569; }
+.section-header { text-align: center; margin-bottom: 6.4rem; }
+.section-tag { display: inline-block; background: #eff6ff; color: var(--pengo-blue); font-size: 1.2rem; font-weight: 700; padding: .4rem 1.4rem; border-radius: 2rem; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 1.4rem; }
+.section-header h2 { font-size: clamp(3.2rem, 4vw, 4.8rem); font-weight: 900; color: #0f172a; letter-spacing: -.02em; }
+.section-header p { font-size: 1.8rem; color: #64748b; margin-top: 1.2rem; max-width: 54rem; margin-left: auto; margin-right: auto; }
+.steps-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2rem; }
+@media (max-width: 900px) { .steps-grid { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 560px) { .steps-grid { grid-template-columns: 1fr; } }
+.step-card {
+    border-radius: 1.6rem; overflow: hidden; position: relative;
+    min-height: 30rem; display: flex; align-items: flex-end;
+    background: #1a2e52; cursor: default;
+    transition: transform .2s, box-shadow .2s;
+}
+.step-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,.4); }
+.step-bg {
+    position: absolute; inset: 0;
+    background-size: cover; background-position: center;
+}
+.step-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,.82) 0%, rgba(0,0,0,.25) 60%, transparent 100%); }
+.step-content { position: relative; z-index: 1; padding: 2.8rem 2.4rem; width: 100%; }
+.step-num { width: 4.8rem; height: 4.8rem; background: rgba(255,255,255,.92); color: #1e3a8a; font-size: 2rem; font-weight: 900; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 1.4rem; box-shadow: 0 2px 12px rgba(0,0,0,.2); }
+.step-card h3 { font-size: 1.9rem; font-weight: 700; color: #fff; margin-bottom: .8rem; }
+.step-card p { font-size: 1.45rem; color: rgba(255,255,255,.75); line-height: 1.65; }
+
+/* ── DESTINATIONS ── */
+.s-destinations { padding: 10rem 0; background: #f5f7ff; }
+.dest-scroll { display: grid; grid-template-columns: repeat(3,1fr); gap: 1.6rem; }
+@media (max-width: 900px) { .dest-scroll { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 500px) { .dest-scroll { grid-template-columns: 1fr; } }
+.dest-card {
+    border-radius: 1.6rem; overflow: hidden; position: relative; cursor: pointer;
+    text-decoration: none; display: block;
+    box-shadow: 0 4px 20px rgba(0,0,0,.1); transition: transform .25s, box-shadow .25s;
+}
+.dest-card:hover { transform: translateY(-6px) scale(1.01); box-shadow: 0 12px 36px rgba(0,0,0,.16); }
+.dest-card-img {
+    width: 100%; aspect-ratio: 4/3; object-fit: cover;
+    background-size: cover; background-position: center;
+    display: block;
+}
+.dest-card-img-el { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; }
+.dest-card-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,.75) 0%, transparent 100%); padding: 3.2rem 2rem 2rem; }
+.dest-card-overlay h3 { font-size: 2rem; font-weight: 800; color: #fff; margin-bottom: .2rem; }
+.dest-card-overlay p { font-size: 1.35rem; color: rgba(255,255,255,.75); }
+.dest-badge { position: absolute; top: 1.2rem; right: 1.2rem; background: rgba(255,255,255,.92); backdrop-filter: blur(6px); color: #1e293b; font-size: 1.1rem; font-weight: 700; padding: .35rem 1rem; border-radius: 2rem; letter-spacing: .03em; text-transform: uppercase; }
+
+/* ── APP PREVIEW ── */
+.s-preview { padding: 10rem 0; background: linear-gradient(135deg, #eef2ff 0%, #ede9fe 100%); }
+.preview-tabs { display: flex; gap: .8rem; justify-content: center; margin-bottom: 4.8rem; flex-wrap: wrap; }
+.preview-tab { padding: 1rem 2.4rem; border: 2px solid #e2e8f0; border-radius: 4rem; font-size: 1.5rem; font-weight: 600; cursor: pointer; background: #fff; color: #64748b; transition: all .2s; }
+.preview-tab.active { border-color: var(--pengo-blue); background: var(--pengo-blue); color: #fff; }
+.preview-panel { display: none; }
+.preview-panel.active { display: grid; grid-template-columns: 1fr 1fr; gap: 6rem; align-items: center; }
+@media (max-width: 900px) { .preview-panel.active { grid-template-columns: 1fr; } }
+.preview-text h2 { font-size: 3.6rem; font-weight: 900; color: #0f172a; margin-bottom: 2rem; letter-spacing: -.02em; }
+.preview-text p { font-size: 1.7rem; color: #475569; line-height: 1.75; margin-bottom: 2.4rem; }
+.preview-list { list-style: none; }
+.preview-list li { display: flex; align-items: flex-start; gap: 1.2rem; font-size: 1.55rem; color: #374151; margin-bottom: 1.2rem; line-height: 1.5; }
+.preview-list li::before { content: '✓'; background: #dcfce7; color: #16a34a; width: 2.2rem; height: 2.2rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 700; flex-shrink: 0; margin-top: .2rem; }
+/* App mockup */
+.preview-mockup { background: #fff; border-radius: 1.6rem; box-shadow: 0 16px 56px rgba(0,0,0,.12); overflow: hidden; border: 1px solid #e2e8f0; }
+.mockup-bar { background: #f1f5f9; padding: 1rem 1.6rem; display: flex; align-items: center; gap: .6rem; }
+.mockup-dot { width: 1.2rem; height: 1.2rem; border-radius: 50%; }
+.mockup-body { padding: 2rem; }
+/* Rec card mockup */
+.mock-rec-card { border: 2px solid #e2e8f0; border-radius: 1.2rem; overflow: hidden; margin-bottom: 1.2rem; }
+.mock-rec-img { height: 15rem; background: linear-gradient(135deg, #dbeafe, #ede9fe); background-size: cover; background-position: center; }
+.mock-rec-body { padding: 1.2rem; }
+.mock-tag { display: inline-block; background: #eff6ff; color: var(--pengo-blue); font-size: 1.1rem; font-weight: 700; padding: .2rem .8rem; border-radius: 2rem; margin-bottom: .6rem; }
+.mock-stars { color: var(--pengo-amber); font-size: 1.3rem; }
+/* Timeline mockup */
+.mock-day { margin-bottom: 1.6rem; }
+.mock-day-label { font-size: 1.2rem; font-weight: 700; color: var(--pengo-blue); background: #eff6ff; padding: .4rem 1rem; border-radius: 2rem; display: inline-block; margin-bottom: 1rem; }
+.mock-stop { display: flex; gap: 1.2rem; align-items: flex-start; margin-bottom: .8rem; padding: 1rem; border: 1px solid #e2e8f0; border-radius: .8rem; border-left: 4px solid var(--pengo-blue); }
+.mock-stop-icon { font-size: 2rem; }
+.mock-stop-text .t { font-size: 1.25rem; font-weight: 600; color: #1e293b; }
+.mock-stop-text .s { font-size: 1.1rem; color: #94a3b8; }
+
+/* ── FEATURES ── */
+.s-features { padding: 10rem 0; background: #eef2ff; }
+.features-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 2.4rem; }
+@media (max-width: 900px) { .features-grid { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 560px) { .features-grid { grid-template-columns: 1fr; } }
+.feat-card { border-radius: 1.6rem; border: 2px solid #e2e8f0; overflow: hidden; background:#fff; transition: all .2s; }
+.feat-card:hover { border-color: var(--pengo-blue); box-shadow: 0 8px 32px rgba(37,99,235,.1); transform: translateY(-3px); }
+.feat-img { height: 17rem; background-size: cover; background-position: center; background-color: #dbeafe; }
+.feat-body { padding: 2.4rem 2.4rem 2.8rem; }
+.feat-card h3 { font-size: 1.9rem; font-weight: 700; color: #1e293b; margin-bottom: .8rem; }
+.feat-card p { font-size: 1.5rem; color: #64748b; line-height: 1.7; }
+
+/* ── TESTIMONIALS ── */
+.s-testimonials { padding: 10rem 0; background: #f5f7ff; }
+.testimonials-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 2.4rem; }
+@media (max-width: 900px) { .testimonials-grid { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 560px) { .testimonials-grid { grid-template-columns: 1fr; } }
+.testimonial-card { background: #fff; border-radius: 1.6rem; padding: 3.2rem; box-shadow: 0 2px 16px rgba(0,0,0,.04); }
+.testimonial-stars { color: var(--pengo-amber); font-size: 1.8rem; margin-bottom: 1.6rem; }
+.testimonial-card p { font-size: 1.55rem; color: #374151; line-height: 1.75; font-style: italic; margin-bottom: 2rem; }
+.testimonial-author { display: flex; align-items: center; gap: 1.2rem; }
+.testimonial-avatar { width: 4.8rem; height: 4.8rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+.testimonial-name { font-size: 1.45rem; font-weight: 700; color: #1e293b; }
+.testimonial-label { font-size: 1.25rem; color: #64748b; }
+
+/* ── FINAL CTA ── */
+.s-cta { padding: 12rem 0; text-align: center; position: relative; overflow: hidden;
+    background: #0f172a url("{{ url_for('static', filename='images/cta-bg.jpg') }}") center/cover no-repeat; }
+.s-cta::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(15,23,42,.62) 0%, rgba(30,58,95,.52) 100%); }
+.s-cta .row { position: relative; z-index: 1; }
+.s-cta h2 { font-size: clamp(3.6rem, 5vw, 6rem); font-weight: 900; color: #fff; letter-spacing: -.02em; margin-bottom: 2rem; }
+.s-cta p { font-size: 1.9rem; color: rgba(255,255,255,.7); margin-bottom: 4.8rem; }
+.cta-btns { display: flex; gap: 1.6rem; justify-content: center; flex-wrap: wrap; }
+.cta-btn-main { padding: 1.8rem 5.6rem; background: var(--pengo-blue); color: #fff; border-radius: .8rem; font-size: 1.8rem; font-weight: 700; text-decoration: none; transition: transform .2s, box-shadow .2s; }
+.cta-btn-main:hover { transform: translateY(-3px); box-shadow: 0 10px 32px rgba(37,99,235,.6); }
+.cta-btn-sec { padding: 1.8rem 4rem; background: transparent; color: #fff; border: 2px solid rgba(255,255,255,.35); border-radius: .8rem; font-size: 1.8rem; font-weight: 600; text-decoration: none; transition: border-color .2s; }
+.cta-btn-sec:hover { border-color: #fff; }
+</style>
+{% endblock %}
+
+{% block header %}
+<nav class="pub-nav" id="pubNav">
+    <a href="/" class="pub-nav-logo">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Pengo" onload="this.classList.add('loaded')">
+        <span class="logo-wm">Pen<span class="logo-go">go</span></span>
+    </a>
+    <div class="pub-nav-links">
+        <a href="#how-it-works">How It Works</a>
+        <a href="#destinations">Destinations</a>
+        <a href="#features">Features</a>
+        <a href="/about">About</a>
+    </div>
+    <div class="pub-nav-btns">
+        <a href="/login" class="nav-btn-login">Log In</a>
+        <a href="/register" class="nav-btn-signup">Get Started Free</a>
+    </div>
+</nav>
+{% endblock %}
+
+{% block footer %}
+<footer style="background:#0f172a;color:#64748b;padding:4rem 0 2rem;">
+    <div class="row" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:3.2rem;">
+        <div style="flex:0 0 30rem;">
+            <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:1.2rem;">
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="" style="height:3rem;width:auto;display:none;" onload="this.style.display='block'">
+                <div style="font-size:3rem;font-weight:900;color:#fff;">Pen<span style="color:#f59e0b;">go</span></div>
+            </div>
+            <p style="font-size:1.5rem;line-height:1.75;color:#64748b;margin-bottom:.8rem;">Smart travel planning, personalised to you. Discover any city with recommendations that match your style.</p>
+            <a href="mailto:pengo@gmail.com" style="font-size:1.4rem;color:#60a5fa;text-decoration:none;">pengo@gmail.com</a>
+        </div>
+        <div style="display:flex;gap:5.6rem;flex-wrap:wrap;">
+            <div>
+                <h4 style="font-size:1.25rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#fff;margin-bottom:1.4rem;">Pages</h4>
+                <ul style="list-style:none;display:flex;flex-direction:column;gap:.8rem;">
+                    <li><a href="#how-it-works" style="color:#64748b;text-decoration:none;font-size:1.45rem;transition:color .2s" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#64748b'">How It Works</a></li>
+                    <li><a href="#destinations" style="color:#64748b;text-decoration:none;font-size:1.45rem;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#64748b'">Destinations</a></li>
+                    <li><a href="#features" style="color:#64748b;text-decoration:none;font-size:1.45rem;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#64748b'">Features</a></li>
+                    <li><a href="/about" style="color:#64748b;text-decoration:none;font-size:1.45rem;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#64748b'">About Us</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 style="font-size:1.25rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#fff;margin-bottom:1.4rem;">Account</h4>
+                <ul style="list-style:none;display:flex;flex-direction:column;gap:.8rem;">
+                    <li><a href="/register" style="color:#64748b;text-decoration:none;font-size:1.45rem;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#64748b'">Create Account</a></li>
+                    <li><a href="/login" style="color:#64748b;text-decoration:none;font-size:1.45rem;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#64748b'">Sign In</a></li>
+                    <li><a href="/dashboard" style="color:#64748b;text-decoration:none;font-size:1.45rem;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#64748b'">Dashboard</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="row" style="margin-top:3.2rem;padding-top:2rem;border-top:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;flex-wrap:wrap;gap:1rem;font-size:1.3rem;color:#475569;">
+        <span>© 2026 Pengo. All rights reserved.</span>
+        <span>Smart travel, beautifully planned.</span>
+    </div>
+</footer>
+{% endblock %}
+
+{% block content %}
+
+<!-- ═══ HERO SLIDER ═══ -->
+<section class="hero-slider">
+    <div class="hero-slide hero-slide-1 active" id="slide-0"></div>
+    <div class="hero-slide hero-slide-2" id="slide-1"></div>
+    <div class="hero-slide hero-slide-3" id="slide-2"></div>
+    <div class="hero-slide hero-slide-4" id="slide-3"></div>
+
+    <div class="hero-content">
+        <div class="hero-text">
+            <div class="hero-city-tag" id="heroTag">Discover the World</div>
+            <h1 id="heroTitle">Travel Smarter.<br>Plan <em>Faster</em>.</h1>
+            <p id="heroSubtitle">Tell Pengo your travel style and we'll build a personalised, ready-to-go itinerary for any city in the world — in seconds.</p>
+            <div class="hero-actions">
+                <a href="/register" class="hero-btn-main">Start Planning Free</a>
+                <a href="#how-it-works" class="hero-btn-sec">See How It Works</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="slider-dots">
+        <button class="slider-dot active" onclick="goSlide(0)"></button>
+        <button class="slider-dot" onclick="goSlide(1)"></button>
+        <button class="slider-dot" onclick="goSlide(2)"></button>
+        <button class="slider-dot" onclick="goSlide(3)"></button>
+    </div>
+</section>
+
+<!-- ═══ QUICK STATS ═══ -->
+<section class="s-stats">
+    <div class="row">
+        <div class="stats-row">
+            <div class="stat-item">
+                <div class="val">10M+</div>
+                <div class="lbl">Attractions Worldwide</div>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+                <div class="val">190+</div>
+                <div class="lbl">Countries Covered</div>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+                <div class="val">100%</div>
+                <div class="lbl">Personalised to You</div>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+                <div class="val">Free</div>
+                <div class="lbl">No Credit Card Needed</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ HOW IT WORKS ═══ -->
+<section class="s-how" id="how-it-works">
+    <div class="row">
+        <div class="section-header">
+            <div class="section-tag">Simple & Fast</div>
+            <h2>Your next trip in four steps</h2>
+            <p>From sign-up to itinerary in under 3 minutes.</p>
+        </div>
+        <div class="steps-grid">
+            <div class="step-card">
+                <div class="step-bg" style="background:#1a2e52;background-image:url('{{ url_for('static',filename='images/step-1.jpg') }}');background-size:cover;background-position:center;"></div>
+                <div class="step-overlay"></div>
+                <div class="step-content">
+                    <div class="step-num">1</div>
+                    <h3>Create Your Account</h3>
+                    <p>Sign up free in under 30 seconds. No credit card required.</p>
+                </div>
+            </div>
+            <div class="step-card">
+                <div class="step-bg" style="background:#1a2e1a;background-image:url('{{ url_for('static',filename='images/step-2.png') }}');background-size:cover;background-position:center;"></div>
+                <div class="step-overlay"></div>
+                <div class="step-content">
+                    <div class="step-num">2</div>
+                    <h3>Tell Us Your Style</h3>
+                    <p>Budget, climate, interests — 3 quick questions to build your travel profile.</p>
+                </div>
+            </div>
+            <div class="step-card">
+                <div class="step-bg" style="background:#2e1a1a;background-image:url('{{ url_for('static',filename='images/step-3.jpg') }}');background-size:cover;background-position:center;"></div>
+                <div class="step-overlay"></div>
+                <div class="step-content">
+                    <div class="step-num">3</div>
+                    <h3>Explore Any Destination</h3>
+                    <p>Search any city. Browse attractions ranked just for you, with real photos and ratings.</p>
+                </div>
+            </div>
+            <div class="step-card">
+                <div class="step-bg" style="background:#1a1a2e;background-image:url('{{ url_for('static',filename='images/step-4.png') }}');background-size:cover;background-position:center;"></div>
+                <div class="step-overlay"></div>
+                <div class="step-content">
+                    <div class="step-num">4</div>
+                    <h3>Get Your Itinerary</h3>
+                    <p>Select what looks good and Pengo builds a day-by-day route — optimised so you waste no time.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ POPULAR DESTINATIONS ═══ -->
+<section class="s-destinations" id="destinations">
+    <div class="row">
+        <div class="section-header">
+            <div class="section-tag">Trending Now</div>
+            <h2>Where will you go next?</h2>
+            <p>Popular destinations our travellers love — click to start exploring.</p>
+        </div>
+        <div class="dest-scroll">
+            <a href="/register" class="dest-card">
+                <div class="dest-card-img" style="height:22rem;background:linear-gradient(135deg,#1a2e4a,#0f1a2e);background-image:url('{{ url_for('static', filename='images/dest-tokyo.jpg') }}');background-size:cover;background-position:center;"></div>
+                <div class="dest-badge">Popular</div>
+                <div class="dest-card-overlay">
+                    <h3>Tokyo</h3>
+                    <p>Japan · Culture, Food & Tech</p>
+                </div>
+            </a>
+            <a href="/register" class="dest-card">
+                <div class="dest-card-img" style="height:22rem;background:linear-gradient(135deg,#2e1a1a,#1a0f0f);background-image:url('{{ url_for('static', filename='images/dest-paris.jpg') }}');background-size:cover;background-position:center;"></div>
+                <div class="dest-card-overlay">
+                    <h3>Paris</h3>
+                    <p>France · Art, History & Romance</p>
+                </div>
+            </a>
+            <a href="/register" class="dest-card">
+                <div class="dest-card-img" style="height:22rem;background:linear-gradient(135deg,#1a2e1a,#0f1a0f);background-image:url('{{ url_for('static', filename='images/dest-bali.jpg') }}');background-size:cover;background-position:center;"></div>
+                <div class="dest-badge">Trending</div>
+                <div class="dest-card-overlay">
+                    <h3>Bali</h3>
+                    <p>Indonesia · Nature & Relaxation</p>
+                </div>
+            </a>
+            <a href="/register" class="dest-card">
+                <div class="dest-card-img" style="height:22rem;background:linear-gradient(135deg,#1a1a2e,#0f0f1a);background-image:url('{{ url_for('static', filename='images/dest-nyc.jpg') }}');background-size:cover;background-position:center;"></div>
+                <div class="dest-card-overlay">
+                    <h3>New York</h3>
+                    <p>USA · Urban Culture & Food</p>
+                </div>
+            </a>
+            <a href="/register" class="dest-card">
+                <div class="dest-card-img" style="height:22rem;background:linear-gradient(135deg,#2e1a2e,#1a0f1a);background-image:url('{{ url_for('static', filename='images/dest-kl.jpg') }}');background-size:cover;background-position:center;"></div>
+                <div class="dest-badge">Nearby</div>
+                <div class="dest-card-overlay">
+                    <h3>Kuala Lumpur</h3>
+                    <p>Malaysia · Shopping & Food</p>
+                </div>
+            </a>
+            <a href="/register" class="dest-card">
+                <div class="dest-card-img" style="height:22rem;background:linear-gradient(135deg,#2e2a1a,#1a1a0f);background-image:url('{{ url_for('static', filename='images/dest-rome.jpg') }}');background-size:cover;background-position:center;"></div>
+                <div class="dest-card-overlay">
+                    <h3>Rome</h3>
+                    <p>Italy · History & Cuisine</p>
+                </div>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ APP PREVIEW ═══ -->
+<section class="s-preview" id="preview">
+    <div class="row">
+        <div class="section-header">
+            <div class="section-tag">Inside the App</div>
+            <h2>Designed for travellers</h2>
+            <p>A quick look at what you'll get when you sign up.</p>
+        </div>
+        <div class="preview-tabs">
+            <button class="preview-tab active" onclick="switchPreview(0, this)">Recommendations</button>
+            <button class="preview-tab" onclick="switchPreview(1, this)">Day-by-Day Plan</button>
+            <button class="preview-tab" onclick="switchPreview(2, this)">Your Profile</button>
+        </div>
+
+        <!-- Panel 0: Recommendations -->
+        <div class="preview-panel active" id="preview-0">
+            <div class="preview-text">
+                <h2>Attractions picked just for you</h2>
+                <p>After your profile is set, every search shows attractions ranked for your specific travel style — not just what's most famous.</p>
+                <ul class="preview-list">
+                    <li>Real photos and live ratings from Google</li>
+                    <li>Filter by category, price, and rating</li>
+                    <li>See trending spots in any city at a glance</li>
+                    <li>Add to your plan with a single click</li>
+                </ul>
+            </div>
+            <div class="preview-mockup">
+                <div class="mockup-bar">
+                    <div class="mockup-dot" style="background:#f87171;"></div>
+                    <div class="mockup-dot" style="background:#fbbf24;margin:0 .4rem;"></div>
+                    <div class="mockup-dot" style="background:#4ade80;"></div>
+                    <div style="flex:1;background:#e2e8f0;height:.8rem;border-radius:1rem;margin-left:1.2rem;"></div>
+                </div>
+                <div class="mockup-body">
+                    <div style="font-size:1.25rem;font-weight:700;color:var(--pengo-muted);margin-bottom:.8rem;">Trending in Tokyo</div>
+                    <div class="mock-rec-card">
+                        <div class="mock-rec-img" style="background-image:url('{{ url_for('static',filename='images/mockup-rec-1.jpg') }}');"></div>
+                        <div class="mock-rec-body">
+                            <div class="mock-tag">History</div>
+                            <div style="font-size:1.5rem;font-weight:700;color:#1e293b;">Tokyo Tower</div>
+                            <div style="display:flex;justify-content:space-between;margin-top:.4rem;">
+                                <span class="mock-stars">★★★★★</span>
+                                <span style="font-size:1.2rem;color:#64748b;">Free entry</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mock-rec-card">
+                        <div class="mock-rec-img" style="background-image:url('{{ url_for('static',filename='images/mockup-rec-2.jpg') }}');"></div>
+                        <div class="mock-rec-body">
+                            <div class="mock-tag">Nature</div>
+                            <div style="font-size:1.5rem;font-weight:700;color:#1e293b;">Shinjuku Gyoen</div>
+                            <div style="display:flex;justify-content:space-between;margin-top:.4rem;">
+                                <span class="mock-stars">★★★★☆</span>
+                                <span style="font-size:1.2rem;color:#64748b;">$5 entry</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel 1: Itinerary -->
+        <div class="preview-panel" id="preview-1">
+            <div class="preview-text">
+                <h2>A smart plan for every day</h2>
+                <p>Pengo orders your chosen attractions by location so you don't zigzag across the city, then builds a realistic schedule with time slots for each stop.</p>
+                <ul class="preview-list">
+                    <li>Attractions ordered to minimise travel time</li>
+                    <li>Time slots from 9 AM, 90 min per stop</li>
+                    <li>Split automatically across multiple days</li>
+                    <li>Print-ready for offline use</li>
+                </ul>
+            </div>
+            <div class="preview-mockup">
+                <div class="mockup-bar">
+                    <div class="mockup-dot" style="background:#f87171;"></div>
+                    <div class="mockup-dot" style="background:#fbbf24;margin:0 .4rem;"></div>
+                    <div class="mockup-dot" style="background:#4ade80;"></div>
+                    <div style="flex:1;background:#e2e8f0;height:.8rem;border-radius:1rem;margin-left:1.2rem;"></div>
+                </div>
+                <div class="mockup-body">
+                    <div class="mock-day">
+                        <span class="mock-day-label">Day 1 · Tokyo</span>
+                        <div class="mock-stop">
+                            <div class="mock-stop-icon">🗼</div>
+                            <div class="mock-stop-text">
+                                <div class="t">Tokyo Tower</div>
+                                <div class="s">09:00 – 10:30</div>
+                            </div>
+                        </div>
+                        <div class="mock-stop">
+                            <div class="mock-stop-icon">🌸</div>
+                            <div class="mock-stop-text">
+                                <div class="t">Shinjuku Gyoen</div>
+                                <div class="s">11:00 – 12:30</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mock-day">
+                        <span class="mock-day-label">Day 2 · Tokyo</span>
+                        <div class="mock-stop">
+                            <div class="mock-stop-icon">⛩️</div>
+                            <div class="mock-stop-text">
+                                <div class="t">Senso-ji Temple</div>
+                                <div class="s">09:00 – 10:30</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel 2: Profile -->
+        <div class="preview-panel" id="preview-2">
+            <div class="preview-text">
+                <h2>Built around your travel personality</h2>
+                <p>Answer three quick questions and Pengo identifies your travel style. Your profile shapes every recommendation you see — from budget filters to attraction categories.</p>
+                <ul class="preview-list">
+                    <li>Budget, mid-range, or luxury preference</li>
+                    <li>Warm, cold, or moderate climate</li>
+                    <li>Choose interests: food, history, nature, and more</li>
+                    <li>Update your profile any time</li>
+                </ul>
+            </div>
+            <div class="preview-mockup">
+                <div class="mockup-bar">
+                    <div class="mockup-dot" style="background:#f87171;"></div>
+                    <div class="mockup-dot" style="background:#fbbf24;margin:0 .4rem;"></div>
+                    <div class="mockup-dot" style="background:#4ade80;"></div>
+                </div>
+                <div style="height:13rem;background:#1e3a5f url('{{ url_for('static',filename='images/mockup-profile.jpg') }}') center/cover no-repeat;border-radius:0 0 0 0;position:relative;">
+                    <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(15,23,42,.75) 0%,transparent 55%);border-radius:0;"></div>
+                    <div style="position:absolute;bottom:1.4rem;left:1.6rem;color:#fff;font-size:1.25rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;opacity:.8;">Your Travel Profile</div>
+                </div>
+                <div class="mockup-body" style="padding:2rem;">
+                    <div style="text-align:center;margin-bottom:1.6rem;">
+                        <div style="font-size:1.25rem;color:#64748b;margin-bottom:.8rem;">Your travel persona</div>
+                        <div style="background:linear-gradient(135deg,var(--pengo-blue),#7c3aed);color:#fff;font-size:1.7rem;font-weight:800;padding:.9rem 2.2rem;border-radius:4rem;display:inline-block;">Adventure Seeker</div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;">
+                        <div style="background:#f1f5f9;border-radius:.8rem;padding:.9rem;text-align:center;font-size:1.25rem;font-weight:600;color:#334155;">Budget Travel</div>
+                        <div style="background:#f1f5f9;border-radius:.8rem;padding:.9rem;text-align:center;font-size:1.25rem;font-weight:600;color:#334155;">Warm Climate</div>
+                        <div style="background:#f1f5f9;border-radius:.8rem;padding:.9rem;text-align:center;font-size:1.25rem;font-weight:600;color:#334155;">Adventure</div>
+                        <div style="background:#f1f5f9;border-radius:.8rem;padding:.9rem;text-align:center;font-size:1.25rem;font-weight:600;color:#334155;">Nature</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ FEATURES ═══ -->
+<section class="s-features" id="features">
+    <div class="row">
+        <div class="section-header">
+            <div class="section-tag">Why Pengo</div>
+            <h2>Everything you need to travel better</h2>
+        </div>
+        <div class="features-grid">
+            <div class="feat-card">
+                <div class="feat-img" style="background-image:url('{{ url_for('static',filename='images/personalisation.jpg') }}');"></div>
+                <div class="feat-body">
+                    <h3>Personalised for You</h3>
+                    <p>Not a generic top-10 list. Your recommendations are shaped by your travel style — every search shows what you'll actually enjoy.</p>
+                </div>
+            </div>
+            <div class="feat-card">
+                <div class="feat-img" style="background-image:url('{{ url_for('static',filename='images/ratings.jpg') }}');"></div>
+                <div class="feat-body">
+                    <h3>Real Photos & Ratings</h3>
+                    <p>Every attraction shows real photos and live star ratings sourced from millions of travellers — so you always know what to expect.</p>
+                </div>
+            </div>
+            <div class="feat-card">
+                <div class="feat-img" style="background-image:url('{{ url_for('static',filename='images/routes.jpg') }}');"></div>
+                <div class="feat-body">
+                    <h3>Smarter Routes</h3>
+                    <p>Your itinerary is ordered by location, not randomly. Spend your days exploring, not commuting between opposite ends of the city.</p>
+                </div>
+            </div>
+            <div class="feat-card">
+                <div class="feat-img" style="background-image:url('{{ url_for('static',filename='images/budget.jpg') }}');"></div>
+                <div class="feat-body">
+                    <h3>Budget Friendly</h3>
+                    <p>Set your budget and only see attractions that fit. Track estimated entry costs across your full trip before you even book flights.</p>
+                </div>
+            </div>
+            <div class="feat-card">
+                <div class="feat-img" style="background-image:url('{{ url_for('static',filename='images/worldwide.jpg') }}');"></div>
+                <div class="feat-body">
+                    <h3>Any City, Worldwide</h3>
+                    <p>No curated city list. Search anywhere on the planet and Pengo fetches live data for that destination on the spot.</p>
+                </div>
+            </div>
+            <div class="feat-card">
+                <div class="feat-img" style="background-image:url('{{ url_for('static',filename='images/use.jpg') }}');"></div>
+                <div class="feat-body">
+                    <h3>Gets Better with Use</h3>
+                    <p>Rate your trips and Pengo learns what you love. The more you use it, the sharper your recommendations become.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ TESTIMONIALS ═══ -->
+<section class="s-testimonials">
+    <div class="row">
+        <div class="section-header">
+            <div class="section-tag">Traveller Stories</div>
+            <h2>From our community</h2>
+        </div>
+        <div class="testimonials-grid">
+            <div class="testimonial-card">
+                <div class="testimonial-stars">★★★★★</div>
+                <p>"I planned a 5-day Tokyo trip in about 10 minutes. The route it gave me was perfect — I didn't waste a single hour doubling back."</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar" style="background:linear-gradient(135deg,#2563eb,#7c3aed);">A</div>
+                    <div>
+                        <div class="testimonial-name">Aisha Rahman</div>
+                        <div class="testimonial-label">Solo traveller · Kuala Lumpur</div>
+                    </div>
+                </div>
+            </div>
+            <div class="testimonial-card">
+                <div class="testimonial-stars">★★★★★</div>
+                <p>"I travel on a tight budget and Pengo actually respected that. Every attraction it suggested was free or under $10. Game changer."</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar" style="background:linear-gradient(135deg,#059669,#0d9488);">M</div>
+                    <div>
+                        <div class="testimonial-name">Marcus Chen</div>
+                        <div class="testimonial-label">Backpacker · Singapore</div>
+                    </div>
+                </div>
+            </div>
+            <div class="testimonial-card">
+                <div class="testimonial-stars">★★★★☆</div>
+                <p>"My husband and I have completely different interests but Pengo found attractions we both loved in Paris. It's like it read our minds."</p>
+                <div class="testimonial-author">
+                    <div class="testimonial-avatar" style="background:linear-gradient(135deg,#d97706,#dc2626);">S</div>
+                    <div>
+                        <div class="testimonial-name">Sophie Laurent</div>
+                        <div class="testimonial-label">Couple travel · France</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ FINAL CTA ═══ -->
+<section class="s-cta">
+    <div class="row">
+        <h2>Your next adventure<br>starts here</h2>
+        <p>Join thousands of smart travellers planning better trips with Pengo.</p>
+        <div class="cta-btns">
+            <a href="/register" class="cta-btn-main">Create Free Account</a>
+            <a href="/about" class="cta-btn-sec">Meet the Team</a>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* ─── Sticky nav ─── */
+const _nav = document.getElementById('pubNav');
+function _checkScroll() { _nav.classList.toggle('scrolled', window.scrollY > 5); }
+window.addEventListener('scroll', _checkScroll, { passive: true });
+_checkScroll();
+
+/* ─── Hero Slider (auto-advance every 2.5s) ─── */
+const SLIDE_COUNT = 4;
+let cur = 0, timer;
+
+function goSlide(n) {
+    document.getElementById('slide-'+cur).classList.remove('active');
+    document.querySelectorAll('.slider-dot')[cur].classList.remove('active');
+    cur = (n + SLIDE_COUNT) % SLIDE_COUNT;
+    document.getElementById('slide-'+cur).classList.add('active');
+    document.querySelectorAll('.slider-dot')[cur].classList.add('active');
+    resetTimer();
+}
+function nextSlide() { goSlide(cur + 1); }
+function prevSlide() { goSlide(cur - 1); }
+function resetTimer() { clearInterval(timer); timer = setInterval(nextSlide, 2500); }
+resetTimer();
+
+/* ─── App preview tabs ─── */
+function switchPreview(n, btn) {
+    document.querySelectorAll('.preview-panel').forEach((p,i) => p.classList.toggle('active', i===n));
+    document.querySelectorAll('.preview-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% block title %}My Preferences — Pengo{% endblock %}
+
+{% block header %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block head %}
+<style>
+.profile-wrap { padding: 8rem 0 6rem; min-height: 100vh; }
+.profile-header { margin-bottom: 3.2rem; }
+.profile-header h1 { font-size: 3rem; font-weight: 900; color: #0f172a; letter-spacing: -.02em; }
+.profile-header p { font-size: 1.6rem; color: #64748b; margin-top: .4rem; }
+
+.pref-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2.4rem; }
+@media (max-width: 800px) { .pref-grid { grid-template-columns: 1fr; } }
+
+.pref-card { background: #fff; border-radius: 1.4rem; padding: 3rem; box-shadow: 0 2px 16px rgba(37,99,235,.06); border: 1.5px solid #e8f0fe; }
+.pref-card h2 { font-size: 1.9rem; font-weight: 700; color: #1e293b; margin-bottom: .4rem; }
+.pref-card .pref-sub { font-size: 1.4rem; color: #94a3b8; margin-bottom: 2rem; }
+
+/* Select */
+.pref-select { width: 100%; padding: 1.2rem 1.4rem; border: 2px solid #e2e8f0; border-radius: .8rem; font-size: 1.6rem; outline: none; background: #f8fafc; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 1rem center; background-size: 1.8rem; padding-right: 3.6rem; cursor: pointer; }
+.pref-select:focus { border-color: #2563eb; background-color: #fff; }
+
+/* Interest chips */
+.interest-grid { display: flex; flex-wrap: wrap; gap: .8rem; }
+.interest-chip { display: inline-flex; align-items: center; gap: .7rem; padding: .85rem 1.5rem; border: 2px solid #e2e8f0; border-radius: 3rem; font-size: 1.4rem; font-weight: 600; color: #475569; background: #fff; cursor: pointer; transition: all .18s; user-select: none; }
+.interest-chip:hover { border-color: #93c5fd; color: #1d4ed8; }
+.interest-chip.selected { border-color: #2563eb; background: #eff6ff; color: #1d4ed8; }
+.interest-chip svg { width: 1.5rem; height: 1.5rem; }
+
+/* Save button */
+.save-wrap { margin-top: 3.2rem; display: flex; align-items: center; gap: 1.6rem; }
+.btn-save { padding: 1.3rem 3.6rem; background: #2563eb; color: #fff; border: none; border-radius: .8rem; font-size: 1.65rem; font-weight: 700; cursor: pointer; transition: opacity .2s, transform .15s; }
+.btn-save:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
+.btn-save:disabled { opacity: .6; cursor: not-allowed; }
+.save-msg { font-size: 1.4rem; font-weight: 600; color: #16a34a; display: none; }
+.save-msg.show { display: block; }
+
+/* Account card */
+.account-card { background: #fff; border-radius: 1.4rem; padding: 3rem; box-shadow: 0 2px 16px rgba(37,99,235,.06); border: 1.5px solid #e8f0fe; margin-top: 2.4rem; }
+.account-card h2 { font-size: 1.9rem; font-weight: 700; color: #1e293b; margin-bottom: 1.6rem; }
+.acct-row { display: flex; align-items: center; justify-content: space-between; padding: 1.4rem 0; border-bottom: 1px solid #f1f5f9; }
+.acct-row:last-child { border-bottom: none; }
+.acct-label { font-size: 1.4rem; font-weight: 600; color: #374151; }
+.acct-value { font-size: 1.4rem; color: #64748b; }
+.acct-value.blue { color: #2563eb; font-weight: 700; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-wrap">
+<div class="row">
+    <div class="profile-header">
+        <h1>My Preferences</h1>
+        <p>Change your travel style anytime — your recommendations update immediately.</p>
+    </div>
+
+    <div class="pref-grid">
+        <!-- Budget -->
+        <div class="pref-card">
+            <h2>Travel Budget</h2>
+            <div class="pref-sub">Sets the price range for all recommended attractions</div>
+            <select class="pref-select" id="budgetSelect">
+                <option value="budget">Budget-friendly — free & low-cost only</option>
+                <option value="mid-range">Mid-range — a mix of paid & free</option>
+                <option value="luxury">Luxury — premium experiences</option>
+            </select>
+        </div>
+
+        <!-- Climate -->
+        <div class="pref-card">
+            <h2>Preferred Climate</h2>
+            <div class="pref-sub">Affects destination suggestions and seasonal tips</div>
+            <select class="pref-select" id="weatherSelect">
+                <option value="warm">Warm — beaches, sun, tropical</option>
+                <option value="cold">Cold — mountains, snow, crisp air</option>
+                <option value="moderate">Moderate — mild, four-season destinations</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Interests -->
+    <div class="pref-card" style="margin-top:2.4rem;">
+        <h2>Travel Interests</h2>
+        <div class="pref-sub">Select all that apply — more interests means better-matched recommendations</div>
+        <div class="interest-grid" id="interestGrid">
+            <div class="interest-chip" data-cat="nature" onclick="toggleChip(this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22V12M12 12C12 6.48 16.48 2 22 2c0 5.52-4.48 10-10 10z"/><path d="M12 12C12 6.48 7.52 2 2 2c0 5.52 4.48 10 10 10z"/></svg>
+                Nature & Outdoors
+            </div>
+            <div class="interest-chip" data-cat="food" onclick="toggleChip(this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+                Food & Dining
+            </div>
+            <div class="interest-chip" data-cat="history" onclick="toggleChip(this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                History & Culture
+            </div>
+            <div class="interest-chip" data-cat="shopping" onclick="toggleChip(this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                Shopping
+            </div>
+            <div class="interest-chip" data-cat="adventure" onclick="toggleChip(this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                Adventure
+            </div>
+            <div class="interest-chip" data-cat="relaxation" onclick="toggleChip(this)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/></svg>
+                Relaxation & Wellness
+            </div>
+        </div>
+    </div>
+
+    <div class="save-wrap">
+        <button class="btn-save" id="saveBtn" onclick="savePreferences()">Save Changes</button>
+        <span class="save-msg" id="saveMsg">Preferences saved!</span>
+    </div>
+
+    <!-- Account info -->
+    <div class="account-card">
+        <h2>Account</h2>
+        <div class="acct-row"><span class="acct-label">Name</span><span class="acct-value" id="acctName">—</span></div>
+        <div class="acct-row"><span class="acct-label">Travel Persona</span><span class="acct-value blue" id="acctPersona">—</span></div>
+        <div class="acct-row"><span class="acct-label">Member since</span><span class="acct-value">2025</span></div>
+    </div>
+</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const INTEREST_OPTIONS = ['nature','food','history','shopping','adventure','relaxation'];
+
+async function loadProfile() {
+    const uid = localStorage.getItem('user_id');
+    const name = localStorage.getItem('user_name') || '—';
+    const persona = localStorage.getItem('persona') || '—';
+    document.getElementById('acctName').textContent = name;
+    document.getElementById('acctPersona').textContent = persona;
+    if (!uid) return;
+
+    try {
+        const res = await fetch(`/api/users/${uid}/profile`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const p = data.profile || {};
+
+        // Set selects
+        if (p.budget_type) document.getElementById('budgetSelect').value = p.budget_type;
+        if (p.weather_pref) document.getElementById('weatherSelect').value = p.weather_pref;
+
+        // Set interests
+        const interests = Array.isArray(p.interests)
+            ? p.interests
+            : String(p.interests || '').split(',').filter(Boolean);
+        document.querySelectorAll('.interest-chip').forEach(chip => {
+            if (interests.includes(chip.dataset.cat)) chip.classList.add('selected');
+        });
+    } catch(e) {}
+}
+
+function toggleChip(el) {
+    el.classList.toggle('selected');
+}
+
+async function savePreferences() {
+    const uid = localStorage.getItem('user_id');
+    if (!uid) { alert('Please log in first.'); return; }
+
+    const btn = document.getElementById('saveBtn');
+    btn.disabled = true; btn.textContent = 'Saving...';
+
+    const budget_type = document.getElementById('budgetSelect').value;
+    const weather_pref = document.getElementById('weatherSelect').value;
+    const interests = [...document.querySelectorAll('.interest-chip.selected')].map(c => c.dataset.cat);
+
+    try {
+        if (!interests.length) {
+            alert('Please select at least one interest.');
+            btn.disabled = false;
+            btn.textContent = 'Save Changes';
+            return;
+        }
+
+        const res = await fetch(`/api/users/${uid}/preferences`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ budget_type, weather_pref, interests })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            throw new Error(data.error || 'Could not save preferences');
+        }
+
+        localStorage.setItem('budget_type', budget_type);
+        if (data.profile?.persona_label) {
+            localStorage.setItem('persona', data.profile.persona_label);
+            document.getElementById('acctPersona').textContent = data.profile.persona_label;
+        }
+        const msg = document.getElementById('saveMsg');
+        msg.classList.add('show');
+        setTimeout(() => msg.classList.remove('show'), 3000);
+    } catch(e) {
+        alert(e.message || 'Network error — is the server running?');
+    } finally {
+        btn.disabled = false; btn.textContent = 'Save Changes';
+    }
+}
+
+loadProfile();
+</script>
+{% endblock %}
