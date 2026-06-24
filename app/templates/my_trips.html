@@ -1,0 +1,624 @@
+{% extends "base.html" %}
+{% block title %}My Trips — Pengo{% endblock %}
+
+{% block content %}
+<style>
+    .trips-wrap {
+        padding: 8rem 0 6rem;
+        min-height: 100vh;
+    }
+    .trips-header {
+        margin-bottom: 3.2rem;
+    }
+    .trips-header h1 {
+        font-size: 3rem;
+        font-weight: 800;
+        color: #1e293b;
+    }
+    .trips-header p {
+        color: #64748b;
+        font-size: 1.55rem;
+        margin-top: 0.6rem;
+    }
+    .trips-empty {
+        text-align: center;
+        padding: 8rem 2rem;
+        color: #94a3b8;
+    }
+    .trips-empty svg {
+        width: 6rem;
+        height: 6rem;
+        margin-bottom: 1.6rem;
+        opacity: 0.35;
+    }
+    .trips-empty h3 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.8rem;
+        color: #64748b;
+    }
+    .trips-empty p {
+        font-size: 1.5rem;
+        max-width: 36rem;
+        margin: 0 auto 2.4rem;
+    }
+    .trips-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 1.6rem;
+    }
+
+    /* ── Trip Card ── */
+    .trip-card {
+        background: #fff;
+        border-radius: 1.4rem;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        overflow: hidden;
+        transition: box-shadow .2s;
+    }
+    .trip-card:hover { box-shadow: 0 6px 24px rgba(37,99,235,0.1); }
+
+    .trip-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 2rem 2.4rem;
+        cursor: pointer;
+        gap: 1.6rem;
+    }
+    .trip-card-header:hover { background: #f8fafc; }
+
+    .trip-dest {
+        font-size: 1.9rem;
+        font-weight: 800;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+    }
+    .trip-meta {
+        display: flex;
+        align-items: center;
+        gap: 1.6rem;
+        flex-wrap: wrap;
+        margin-top: 0.4rem;
+    }
+    .trip-meta-item {
+        font-size: 1.35rem;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .trip-rating-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: #fef9c3;
+        color: #92400e;
+        border: 1px solid #fde68a;
+        border-radius: 2rem;
+        padding: 0.3rem 1rem;
+        font-size: 1.3rem;
+        font-weight: 700;
+    }
+    .trip-unrated-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: #f1f5f9;
+        color: #94a3b8;
+        border: 1px solid #e2e8f0;
+        border-radius: 2rem;
+        padding: 0.3rem 1rem;
+        font-size: 1.3rem;
+        font-weight: 600;
+    }
+    .trip-toggle-icon {
+        flex-shrink: 0;
+        width: 3.2rem;
+        height: 3.2rem;
+        border-radius: 50%;
+        background: #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform .25s, background .2s;
+    }
+    .trip-card.open .trip-toggle-icon {
+        transform: rotate(180deg);
+        background: #eff6ff;
+    }
+    .trip-toggle-icon svg {
+        width: 1.6rem;
+        height: 1.6rem;
+        stroke: #64748b;
+    }
+    .trip-card.open .trip-toggle-icon svg { stroke: #2563eb; }
+
+    /* ── Itinerary Detail ── */
+    .trip-detail {
+        display: none;
+        border-top: 1px solid #f1f5f9;
+        padding: 2.4rem;
+    }
+    .trip-card.open .trip-detail { display: block; }
+
+    .day-section {
+        margin-bottom: 2.4rem;
+    }
+    .day-label {
+        font-size: 1.3rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: #2563eb;
+        margin-bottom: 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+    }
+    .day-label::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: #e2e8f0;
+    }
+
+    .att-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 1.2rem;
+        padding: 1.2rem 0;
+        border-bottom: 1px solid #f8fafc;
+        position: relative;
+    }
+    .att-row:last-child { border-bottom: none; }
+    .att-row.removing {
+        opacity: 0.4;
+        pointer-events: none;
+        transition: opacity .3s;
+    }
+
+    .att-time {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #64748b;
+        white-space: nowrap;
+        min-width: 5rem;
+        padding-top: 0.2rem;
+    }
+    .att-dot {
+        width: 1rem;
+        height: 1rem;
+        border-radius: 50%;
+        background: #2563eb;
+        margin-top: 0.5rem;
+        flex-shrink: 0;
+    }
+    .att-info { flex: 1; }
+    .att-name {
+        font-size: 1.55rem;
+        font-weight: 700;
+        color: #1e293b;
+    }
+    .att-sub {
+        font-size: 1.3rem;
+        color: #64748b;
+        margin-top: 0.2rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    .att-sub span { display: flex; align-items: center; gap: 0.3rem; }
+
+    .remove-att-btn {
+        margin-left: auto;
+        flex-shrink: 0;
+        background: none;
+        border: 1.5px solid #fecaca;
+        color: #ef4444;
+        border-radius: 0.6rem;
+        padding: 0.4rem 0.9rem;
+        font-size: 1.25rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        transition: background .15s, color .15s;
+        white-space: nowrap;
+    }
+    .remove-att-btn:hover { background: #fef2f2; }
+    .remove-att-btn svg { width: 1.2rem; height: 1.2rem; }
+
+    /* ── Rating Section ── */
+    .trip-rate-section {
+        margin-top: 2.4rem;
+        padding: 2rem;
+        background: #f8fafc;
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1.6rem;
+        flex-wrap: wrap;
+    }
+    .rate-label {
+        font-size: 1.45rem;
+        font-weight: 600;
+        color: #374151;
+    }
+    .rate-label small {
+        display: block;
+        font-size: 1.25rem;
+        font-weight: 400;
+        color: #94a3b8;
+        margin-top: 0.2rem;
+    }
+    .star-row {
+        display: flex;
+        gap: 0.4rem;
+    }
+    .star-btn {
+        background: none;
+        border: none;
+        font-size: 2.8rem;
+        cursor: pointer;
+        color: #d1d5db;
+        line-height: 1;
+        transition: color .15s, transform .1s;
+    }
+    .star-btn:hover,
+    .star-btn.active { color: #f59e0b; }
+    .star-btn:active { transform: scale(0.88); }
+
+    .rate-submit-btn {
+        padding: 0.9rem 2rem;
+        background: var(--pengo-blue);
+        color: #fff;
+        border: none;
+        border-radius: 0.8rem;
+        font-size: 1.45rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: opacity .2s;
+        display: none;
+    }
+    .rate-submit-btn.show { display: block; }
+    .rate-submit-btn:hover { opacity: .9; }
+    .rate-submit-btn:disabled { opacity: .6; cursor: not-allowed; }
+
+    .rated-display {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        font-size: 1.45rem;
+        font-weight: 600;
+        color: #92400e;
+    }
+    .rated-display .stars { color: #f59e0b; font-size: 1.8rem; }
+
+    .feedback-input {
+        width: 100%;
+        margin-top: 1rem;
+        padding: 0.9rem 1.2rem;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 0.8rem;
+        font-size: 1.4rem;
+        resize: none;
+        font-family: inherit;
+        outline: none;
+        transition: border-color .2s;
+        display: none;
+    }
+    .feedback-input.show { display: block; }
+    .feedback-input:focus { border-color: var(--pengo-blue); }
+
+    .loading-wrap {
+        text-align: center;
+        padding: 6rem 2rem;
+        color: #94a3b8;
+        font-size: 1.55rem;
+    }
+    .loading-wrap .spinner { border-color: #e2e8f0; border-top-color: #2563eb; width: 2.8rem; height: 2.8rem; margin: 0 auto 1.2rem; }
+
+    @media (max-width: 600px) {
+        .trip-card-header { padding: 1.6rem; flex-wrap: wrap; }
+        .trip-rate-section { flex-direction: column; align-items: flex-start; }
+    }
+</style>
+
+<div class="trips-wrap">
+    <div class="row">
+        <div class="trips-header">
+            <h1>My Trips</h1>
+            <p>All your saved itineraries in one place.</p>
+        </div>
+
+        <div id="tripsLoading" class="loading-wrap">
+            <div class="spinner"></div>
+            Loading your trips...
+        </div>
+
+        <div id="tripsEmpty" class="trips-empty" style="display:none;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.72 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.63 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+            <h3>No trips yet</h3>
+            <p>Generate your first itinerary to see it here.</p>
+            <a href="/itinerary" style="display:inline-block;padding:1.2rem 2.4rem;background:var(--pengo-blue);color:#fff;border-radius:0.8rem;font-weight:700;font-size:1.5rem;text-decoration:none;">Plan a Trip</a>
+        </div>
+
+        <div id="tripsList" class="trips-grid" style="display:none;"></div>
+    </div>
+</div>
+
+<script>
+const userId = localStorage.getItem('user_id');
+
+if (!userId) {
+    window.location.href = '/login';
+}
+
+async function loadTrips() {
+    try {
+        const res = await fetch(`/api/itinerary/my?user_id=${userId}`);
+        const data = await res.json();
+        document.getElementById('tripsLoading').style.display = 'none';
+
+        const trips = data.itineraries || [];
+        if (!trips.length) {
+            document.getElementById('tripsEmpty').style.display = 'block';
+            return;
+        }
+
+        document.getElementById('tripsList').style.display = 'flex';
+        trips.forEach(t => {
+            document.getElementById('tripsList').insertAdjacentHTML('beforeend', buildCard(t));
+        });
+    } catch {
+        document.getElementById('tripsLoading').innerHTML =
+            '<p style="color:#dc2626;">Failed to load trips. Please refresh.</p>';
+    }
+}
+
+function buildCard(trip) {
+    const date = trip.created_at
+        ? new Date(trip.created_at).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+        : '—';
+
+    const ratingChip = trip.rating
+        ? `<span class="trip-rating-chip">★ ${trip.rating.rating_score}/5</span>`
+        : `<span class="trip-unrated-chip">Not rated yet</span>`;
+
+    const daysHtml = (trip.days || []).map(d => `
+        <div class="day-section" id="day-${trip.itinerary_id}-${d.day}">
+            <div class="day-label">Day ${d.day}</div>
+            ${buildDayItems(trip.itinerary_id, d.items)}
+        </div>
+    `).join('');
+
+    const rateSection = trip.rating
+        ? `<div class="trip-rate-section">
+                <div class="rate-label">
+                    Your rating
+                    <small>${trip.rating.feedback_text || ''}</small>
+                </div>
+                <div class="rated-display">
+                    <span class="stars">${'★'.repeat(trip.rating.rating_score)}${'☆'.repeat(5 - trip.rating.rating_score)}</span>
+                    ${trip.rating.rating_score}/5
+                </div>
+            </div>`
+        : `<div class="trip-rate-section">
+                <div class="rate-label">
+                    How was this trip?
+                    <small>Your rating helps improve future recommendations.</small>
+                </div>
+                <div>
+                    <div class="star-row" id="stars-${trip.itinerary_id}">
+                        ${[1,2,3,4,5].map(s =>
+                            `<button class="star-btn" data-itin="${trip.itinerary_id}" data-score="${s}"
+                                onclick="selectStar(${trip.itinerary_id}, ${s})">★</button>`
+                        ).join('')}
+                    </div>
+                    <textarea class="feedback-input" id="feedback-${trip.itinerary_id}"
+                        rows="2" placeholder="Optional comment..."></textarea>
+                    <button class="rate-submit-btn" id="rateBtn-${trip.itinerary_id}"
+                        onclick="submitRating(${trip.itinerary_id})">
+                        Submit Rating
+                    </button>
+                </div>
+            </div>`;
+
+    return `
+    <div class="trip-card" id="card-${trip.itinerary_id}">
+        <div class="trip-card-header" onclick="toggleCard(${trip.itinerary_id})">
+            <div style="flex:1;min-width:0;">
+                <div class="trip-dest">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
+                    ${trip.destination}
+                </div>
+                <div class="trip-meta">
+                    <span class="trip-meta-item">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>
+                        ${date}
+                    </span>
+                    <span class="trip-meta-item">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        ${trip.travel_days} day${trip.travel_days !== 1 ? 's' : ''}
+                    </span>
+                    <span class="trip-meta-item">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        ${trip.total_attractions} attraction${trip.total_attractions !== 1 ? 's' : ''}
+                    </span>
+                    ${ratingChip}
+                </div>
+            </div>
+            <div class="trip-toggle-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+        </div>
+        <div class="trip-detail">
+            ${daysHtml}
+            ${rateSection}
+        </div>
+    </div>`;
+}
+
+function buildDayItems(itinId, items) {
+    return items.map(item => {
+        const a = item.attraction || {};
+        const fee = a.entry_cost != null ? `RM ${parseFloat(a.entry_cost).toFixed(2)}` : 'Free';
+        const rating = a.rating ? `★ ${parseFloat(a.rating).toFixed(1)}` : '';
+        return `
+        <div class="att-row" id="att-row-${itinId}-${a.attraction_id}">
+            <div class="att-time">${item.start_time || ''}</div>
+            <div class="att-dot"></div>
+            <div class="att-info">
+                <div class="att-name">${a.name || 'Unknown'}</div>
+                <div class="att-sub">
+                    ${a.category ? `<span>${a.category}</span>` : ''}
+                    ${rating ? `<span>${rating}</span>` : ''}
+                    <span>${fee}</span>
+                </div>
+            </div>
+            <button class="remove-att-btn"
+                onclick="removeAttraction(${itinId}, ${a.attraction_id}, this)"
+                title="Don't like this attraction">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                Remove
+            </button>
+        </div>`;
+    }).join('');
+}
+
+async function removeAttraction(itinId, attractionId, btn) {
+    if (!confirm('Remove this attraction and find a replacement?')) return;
+
+    const row = document.getElementById(`att-row-${itinId}-${attractionId}`);
+    if (row) row.classList.add('removing');
+    btn.disabled = true;
+
+    try {
+        const res = await fetch(`/api/itinerary/${itinId}/dislike-attraction`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: parseInt(userId),
+                attraction_id: attractionId,
+            }),
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            // Rebuild the day section with updated items
+            const daySection = document.getElementById(`day-${itinId}-${data.day}`);
+            if (daySection) {
+                const label = daySection.querySelector('.day-label').outerHTML;
+                daySection.innerHTML = label + buildDayItems(itinId, data.items);
+            }
+            if (data.replaced_with) {
+                showToast(`Replaced with: ${data.replaced_with}`);
+            } else {
+                showToast('Attraction removed.');
+            }
+        } else {
+            if (row) row.classList.remove('removing');
+            btn.disabled = false;
+            showToast(data.error || 'Failed to remove attraction.', true);
+        }
+    } catch {
+        if (row) row.classList.remove('removing');
+        btn.disabled = false;
+        showToast('Network error. Please try again.', true);
+    }
+}
+
+function showToast(msg, isError = false) {
+    const t = document.createElement('div');
+    t.textContent = msg;
+    Object.assign(t.style, {
+        position: 'fixed', bottom: '2.4rem', left: '50%',
+        transform: 'translateX(-50%)',
+        background: isError ? '#dc2626' : '#1e293b',
+        color: '#fff', padding: '1rem 2rem',
+        borderRadius: '0.8rem', fontSize: '1.45rem',
+        fontWeight: '600', zIndex: '9999',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+        transition: 'opacity .4s',
+    });
+    document.body.appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 400); }, 2800);
+}
+
+let selectedStars = {};
+
+function toggleCard(id) {
+    const card = document.getElementById(`card-${id}`);
+    card.classList.toggle('open');
+}
+
+function selectStar(itinId, score) {
+    selectedStars[itinId] = score;
+    const stars = document.querySelectorAll(`#stars-${itinId} .star-btn`);
+    stars.forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.score) <= score);
+    });
+    document.getElementById(`feedback-${itinId}`).classList.add('show');
+    document.getElementById(`rateBtn-${itinId}`).classList.add('show');
+}
+
+async function submitRating(itinId) {
+    const score = selectedStars[itinId];
+    if (!score) return;
+
+    const btn = document.getElementById(`rateBtn-${itinId}`);
+    const feedback = document.getElementById(`feedback-${itinId}`).value.trim();
+
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    try {
+        const res = await fetch(`/api/itinerary/${itinId}/rate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: parseInt(userId),
+                rating_score: score,
+                feedback_text: feedback || null,
+            }),
+        });
+
+        if (res.ok) {
+            // Replace rate section with rated display
+            const section = btn.closest('.trip-rate-section');
+            section.innerHTML = `
+                <div class="rate-label">Your rating <small>${feedback || ''}</small></div>
+                <div class="rated-display">
+                    <span class="stars">${'★'.repeat(score)}${'☆'.repeat(5 - score)}</span>
+                    ${score}/5
+                </div>`;
+
+            // Update chip in header
+            const chip = document.querySelector(`#card-${itinId} .trip-unrated-chip`);
+            if (chip) {
+                chip.className = 'trip-rating-chip';
+                chip.textContent = `★ ${score}/5`;
+            }
+        } else {
+            btn.disabled = false;
+            btn.textContent = 'Submit Rating';
+            alert('Failed to save rating. Please try again.');
+        }
+    } catch {
+        btn.disabled = false;
+        btn.textContent = 'Submit Rating';
+    }
+}
+
+loadTrips();
+</script>
+{% endblock %}

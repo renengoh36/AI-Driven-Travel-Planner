@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+{% block title %}Your Itinerary — Pengo{% endblock %}
+
+{% block head %}
+<style>
+    .s-itin { min-height: 100vh; background: #f8fafc; padding-top: 6rem; }
+    .itin-header {
+        background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
+        padding: 5rem 0;
+        color: #fff;
+    }
+    .itin-header h1 { font-size: 3.6rem; font-weight: 800; margin-bottom: 0.6rem; }
+    .itin-header p { color: #94a3b8; font-size: 1.7rem; }
+    .itin-meta-chips { display: flex; gap: 1.2rem; margin-top: 2rem; flex-wrap: wrap; }
+    .chip {
+        display: inline-flex; align-items: center; gap: 0.6rem;
+        background: rgba(255,255,255,0.12);
+        border: 1px solid rgba(255,255,255,0.2);
+        color: #e2e8f0; font-size: 1.4rem;
+        padding: 0.5rem 1.4rem; border-radius: 2rem;
+    }
+    /* Day sections */
+    .day-block { margin-bottom: 3.2rem; }
+    .day-header {
+        display: flex; align-items: center; gap: 1.2rem;
+        margin-bottom: 1.6rem;
+    }
+    .day-badge {
+        background: #2563eb; color: #fff;
+        font-size: 1.3rem; font-weight: 800;
+        padding: 0.5rem 1.6rem; border-radius: 2rem;
+        white-space: nowrap;
+    }
+    .day-line { flex: 1; height: 2px; background: #e2e8f0; }
+    /* Timeline */
+    .timeline { position: relative; padding-left: 3.2rem; }
+    .timeline::before {
+        content: '';
+        position: absolute; left: 1.1rem; top: 0; bottom: 0;
+        width: 2px; background: #e2e8f0;
+    }
+    .timeline-item {
+        position: relative;
+        margin-bottom: 2rem;
+    }
+    .timeline-dot {
+        position: absolute; left: -2.9rem; top: 1.8rem;
+        width: 1.4rem; height: 1.4rem;
+        background: #2563eb; border-radius: 50%;
+        border: 3px solid #eff6ff;
+        z-index: 1;
+    }
+    .tl-card {
+        background: #fff;
+        border-radius: 1.2rem;
+        padding: 1.8rem 2rem;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        border-left: 4px solid #2563eb;
+        display: flex; gap: 1.6rem; align-items: flex-start;
+    }
+    .tl-icon { font-size: 3.2rem; flex-shrink: 0; }
+    .tl-info h4 { font-size: 1.7rem; font-weight: 700; color: #1e293b; margin-bottom: 0.4rem; }
+    .tl-info .tl-time { font-size: 1.3rem; color: #2563eb; font-weight: 600; margin-bottom: 0.6rem; }
+    .tl-info .tl-meta { font-size: 1.3rem; color: #64748b; }
+    .tl-info .cat-tag {
+        display: inline-block;
+        background: #eff6ff; color: #2563eb;
+        font-size: 1.1rem; font-weight: 600;
+        padding: 0.2rem 0.8rem; border-radius: 2rem;
+        text-transform: capitalize; margin-bottom: 0.6rem;
+    }
+    /* Summary card */
+    .summary-card {
+        background: #fff; border-radius: 1.6rem;
+        box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+        padding: 3.2rem; margin-bottom: 4rem;
+    }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(14rem,1fr)); gap: 2rem; }
+    .summary-stat { text-align: center; }
+    .summary-stat .val { font-size: 3rem; font-weight: 800; color: #2563eb; }
+    .summary-stat .lbl { font-size: 1.35rem; color: #64748b; margin-top: 0.4rem; }
+    /* Rating section */
+    .rating-section {
+        background: #fff; border-radius: 1.6rem;
+        box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+        padding: 3.2rem; margin-top: 4rem;
+    }
+    .rating-section h3 { font-size: 2.2rem; font-weight: 700; color: #1e293b; margin-bottom: 0.6rem; }
+    .star-row { display: flex; gap: 0.8rem; margin: 1.6rem 0; }
+    .star-btn {
+        font-size: 3.2rem; cursor: pointer;
+        transition: transform 0.1s;
+        background: none; border: none; padding: 0;
+    }
+    .star-btn:hover { transform: scale(1.2); }
+    .star-btn.active { filter: drop-shadow(0 0 4px #f59e0b); }
+    .rating-section textarea {
+        width: 100%; padding: 1.2rem;
+        border: 2px solid #e2e8f0; border-radius: 0.8rem;
+        font-size: 1.5rem; resize: vertical; min-height: 10rem;
+        outline: none;
+    }
+    .rating-section textarea:focus { border-color: #2563eb; }
+    .btn-rate {
+        margin-top: 1.6rem;
+        padding: 1.2rem 3.2rem;
+        background: #2563eb; color: #fff;
+        border: none; border-radius: 0.8rem;
+        font-size: 1.6rem; font-weight: 700;
+        cursor: pointer; transition: opacity 0.2s;
+    }
+    .btn-rate:hover { opacity: 0.9; }
+    /* Print */
+    @media print {
+        .s-header, .rating-section, .generate-bar, .btn-print { display: none !important; }
+        .s-itin { padding-top: 0; }
+    }
+</style>
+{% endblock %}
+
+{% block header %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+<div class="s-itin">
+    <div class="itin-header">
+        <div class="row">
+            <h1 id="itin-title">Your Itinerary</h1>
+            <p id="itin-sub"></p>
+            <div class="itin-meta-chips">
+                <div class="chip">🗓️ <span id="chip-days"></span></div>
+                <div class="chip">📍 <span id="chip-dest"></span></div>
+                <div class="chip">🎯 <span id="chip-atts"></span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row" style="padding: 4rem 0 6rem;">
+        <!-- Summary -->
+        <div class="summary-card">
+            <div class="summary-grid" id="summary-grid"></div>
+        </div>
+
+        <div id="alert" class="alert-box error"></div>
+
+        <!-- Day-by-day timeline -->
+        <div id="days-container"></div>
+
+        <!-- Rating -->
+        <div class="rating-section" id="rating-section">
+            <h3>How was this itinerary?</h3>
+            <p style="color:#64748b;font-size:1.5rem;">Your rating helps Pengo improve recommendations for you and similar travellers.</p>
+            <div class="star-row" id="star-row">
+                <button class="star-btn" data-v="1">⭐</button>
+                <button class="star-btn" data-v="2">⭐</button>
+                <button class="star-btn" data-v="3">⭐</button>
+                <button class="star-btn" data-v="4">⭐</button>
+                <button class="star-btn" data-v="5">⭐</button>
+            </div>
+            <textarea id="feedback-text" placeholder="Optional: tell us what you loved or what could improve..."></textarea>
+            <button class="btn-rate" id="rateBtn" onclick="submitRating()">Submit Rating</button>
+            <div id="rate-msg" class="alert-box success" style="margin-top:1.2rem;"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const userId = localStorage.getItem('user_id');
+if (!userId) window.location.href = '/login';
+
+// Add print + new trip buttons to topbar
+const topbarActions = document.querySelector('.topbar-actions');
+if (topbarActions) {
+    topbarActions.insertAdjacentHTML('beforebegin',
+        `<div style="display:flex;gap:1rem;margin-right:1rem;">
+            <button onclick="window.print()" style="padding:.6rem 1.6rem;border:2px solid #e2e8f0;background:#fff;color:#374151;border-radius:.6rem;font-size:1.3rem;font-weight:600;cursor:pointer;">🖨️ Print</button>
+            <a href="/dashboard" style="padding:.6rem 1.6rem;background:var(--pengo-blue);color:#fff;border-radius:.6rem;font-size:1.3rem;font-weight:600;text-decoration:none;">+ New Trip</a>
+        </div>`
+    );
+}
+
+const CATEGORY_ICONS = {
+    nature: '🌿', food: '🍜', history: '🏛️',
+    shopping: '🛍️', adventure: '🧗', relaxation: '🧘'
+};
+
+let itinerary = null;
+let selectedRating = 0;
+
+try {
+    itinerary = JSON.parse(sessionStorage.getItem('itinerary') || 'null');
+} catch(e) { itinerary = null; }
+
+if (!itinerary) {
+    document.getElementById('alert').className = 'alert-box error show';
+    document.getElementById('alert').textContent = 'No itinerary data found. Please generate one from the recommendations page.';
+} else {
+    renderItinerary(itinerary);
+}
+
+function renderItinerary(itin) {
+    const destination = itin.destination || '';
+    const days = itin.travel_days || 1;
+    const items = itin.items || [];
+
+    document.getElementById('itin-title').textContent = `Your ${destination} Itinerary`;
+    document.getElementById('itin-sub').textContent = `AI-optimised route • Generated by Pengo`;
+    document.getElementById('chip-days').textContent = `${days} Day${days > 1 ? 's' : ''}`;
+    document.getElementById('chip-dest').textContent = destination;
+    document.getElementById('chip-atts').textContent = `${items.length} Attractions`;
+
+    // Summary stats
+    const totalCost = items.reduce((s, i) => s + (i.attraction?.entry_cost || 0), 0);
+    const avgRating = items.filter(i => i.attraction?.rating).reduce((s, i) => s + i.attraction.rating, 0)
+        / (items.filter(i => i.attraction?.rating).length || 1);
+    document.getElementById('summary-grid').innerHTML = `
+        <div class="summary-stat"><div class="val">${items.length}</div><div class="lbl">Attractions</div></div>
+        <div class="summary-stat"><div class="val">${days}</div><div class="lbl">Days</div></div>
+        <div class="summary-stat"><div class="val">$${totalCost.toFixed(0)}</div><div class="lbl">Est. Entry Cost</div></div>
+        <div class="summary-stat"><div class="val">${avgRating.toFixed(1)}</div><div class="lbl">Avg. Rating</div></div>
+    `;
+
+    // Group by day
+    const byDay = {};
+    items.forEach(item => {
+        const d = item.day_number || 1;
+        if (!byDay[d]) byDay[d] = [];
+        byDay[d].push(item);
+    });
+
+    const container = document.getElementById('days-container');
+    container.innerHTML = '';
+
+    Object.keys(byDay).sort((a,b) => a-b).forEach(day => {
+        const dayItems = byDay[day];
+        const block = document.createElement('div');
+        block.className = 'day-block';
+
+        const dayItems_html = dayItems.map((item, idx) => {
+            const att = item.attraction || {};
+            const icon = CATEGORY_ICONS[att.category] || '📍';
+            const rating = att.rating ? `⭐ ${att.rating.toFixed(1)}` : '';
+            const cost = att.entry_cost ? `💵 $${att.entry_cost.toFixed(0)} entry` : '💵 Free entry';
+            return `
+                <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="tl-card">
+                        <div class="tl-icon">${icon}</div>
+                        <div class="tl-info">
+                            <div class="cat-tag">${att.category || 'attraction'}</div>
+                            <h4>${att.name || 'Unknown'}</h4>
+                            <div class="tl-time">🕘 ${item.start_time || '09:00'} – ${item.end_time || '10:30'}</div>
+                            <div class="tl-meta">${rating}${rating ? ' &nbsp;•&nbsp; ' : ''}${cost}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        block.innerHTML = `
+            <div class="day-header">
+                <div class="day-badge">Day ${day}</div>
+                <div class="day-line"></div>
+                <span style="font-size:1.35rem;color:#94a3b8;white-space:nowrap;">${dayItems.length} stop${dayItems.length !== 1 ? 's' : ''}</span>
+            </div>
+            <div class="timeline">${dayItems_html}</div>
+        `;
+        container.appendChild(block);
+    });
+}
+
+// Star rating
+document.getElementById('star-row').querySelectorAll('.star-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        selectedRating = parseInt(this.dataset.v);
+        document.querySelectorAll('.star-btn').forEach((b, i) => {
+            b.textContent = i < selectedRating ? '⭐' : '☆';
+            b.classList.toggle('active', i < selectedRating);
+        });
+    });
+    btn.textContent = '☆';
+});
+
+async function submitRating() {
+    if (!selectedRating) {
+        alert('Please select a star rating first.');
+        return;
+    }
+    if (!itinerary) return;
+
+    const btn = document.getElementById('rateBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Submitting...';
+
+    try {
+        const res = await fetch(`/api/itinerary/${itinerary.itinerary_id}/rate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: parseInt(userId),
+                rating_score: selectedRating,
+                feedback_text: document.getElementById('feedback-text').value
+            })
+        });
+
+        if (res.ok) {
+            const msg = document.getElementById('rate-msg');
+            msg.className = 'alert-box success show';
+            msg.textContent = 'Thank you! Your rating helps improve future recommendations.';
+            document.getElementById('rating-section').querySelector('textarea').disabled = true;
+            document.querySelectorAll('.star-btn').forEach(b => b.disabled = true);
+            btn.style.display = 'none';
+        } else {
+            btn.disabled = false;
+            btn.textContent = 'Submit Rating';
+        }
+    } catch(e) {
+        btn.disabled = false;
+        btn.textContent = 'Submit Rating';
+    }
+}
+</script>
+{% endblock %}
