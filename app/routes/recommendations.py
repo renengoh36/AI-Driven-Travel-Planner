@@ -1,4 +1,5 @@
-from flask import Blueprint, request, jsonify, current_app, Response, abort
+from flask import Blueprint, request, jsonify, current_app, Response, abort, redirect
+import requests as http_requests
 from app.models.db import db
 from sqlalchemy import or_ as sql_or
 from app.models.user import User
@@ -80,6 +81,16 @@ def get_recommendations():
 
     attractions_db = _query_by_destination(destination)
 
+    # Deduplicate by name+city (guard against duplicate DB rows)
+    seen_keys = set()
+    unique_db = []
+    for a in attractions_db:
+        key = (a.name.strip().lower(), (a.city or '').strip().lower())
+        if key not in seen_keys:
+            seen_keys.add(key)
+            unique_db.append(a)
+    attractions_db = unique_db
+
     if not attractions_db:
         try:
             added = _cache_attractions_for_city(destination)
@@ -102,7 +113,9 @@ def get_recommendations():
 
     user_profile = user.profile.to_dict()
     user_profile["user_id"] = int(user_id)   # needed by CF module
-    attractions  = [a.to_dict() for a in attractions_db]
+
+    # Only include attractions that have a photo (Google ref or manual URL)
+    attractions  = [a.to_dict() for a in attractions_db if a.photo_reference or a.photo_url]
 
     # ── Load behaviour weights for behaviour-aware cosine similarity ──────
     bw = get_behaviour_weights(int(user_id), db.session)
@@ -118,6 +131,38 @@ def get_recommendations():
     )
 
     return jsonify({"destination": destination, "recommendations": ranked}), 200
+
+
+@rec_bp.route("/photo", methods=["GET"])
+def proxy_photo():
+    """GET /api/photo?ref=<photo_reference>&w=<width>
+    Proxies Google Places Photo API so the API key is never exposed to the browser.
+    """
+    ref = request.args.get("ref", "").strip()
+    w   = request.args.get("w", "600")
+
+    if not ref:
+        abort(400)
+
+    api_key = current_app.config.get("GOOGLE_API_KEY", "")
+    if not api_key:
+        abort(500)
+
+    google_url = (
+        f"https://maps.googleapis.com/maps/api/place/photo"
+        f"?maxwidth={w}&photo_reference={ref}&key={api_key}"
+    )
+
+    try:
+        resp = http_requests.get(google_url, timeout=8, allow_redirects=True)
+        if resp.status_code != 200:
+            abort(404)
+        return Response(
+            resp.content,
+            content_type=resp.headers.get("Content-Type", "image/jpeg"),
+        )
+    except Exception:
+        abort(502)
 
 
 @rec_bp.route("/cities", methods=["GET"])
@@ -167,7 +212,7 @@ def persona_recommendations():
 
     user_profile = user.profile.to_dict()
     user_profile["user_id"] = user_id
-    attractions  = [a.to_dict() for a in attractions_db]
+    attractions  = [a.to_dict() for a in attractions_db if a.photo_reference or a.photo_url]
 
     bw = get_behaviour_weights(user_id, db.session)
 
@@ -182,28 +227,3 @@ def persona_recommendations():
     return jsonify({"recommendations": ranked}), 200
 
 
-@rec_bp.route("/photo")
-def get_photo():
-    """Server-side proxy for Google Places photos — keeps API key off the client."""
-    ref   = request.args.get("ref", "").strip()
-    width = request.args.get("w", "800")
-    if not ref:
-        abort(404)
-
-    api_key = current_app.config.get("GOOGLE_API_KEY", "")
-    if not api_key:
-        abort(503)
-
-    url = (
-        f"https://maps.googleapis.com/maps/api/place/photo"
-        f"?maxwidth={width}&photoreference={ref}&key={api_key}"
-    )
-    try:
-        import requests as req_lib
-        resp = req_lib.get(url, timeout=10)
-        return Response(
-            resp.content,
-            content_type=resp.headers.get("content-type", "image/jpeg"),
-        )
-    except Exception:
-        abort(504)

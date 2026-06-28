@@ -93,67 +93,64 @@ body.app-page { padding-top: 6rem; }
 .selection-info { font-size: 1.4rem; color: var(--pengo-blue); font-weight: 600; }
 
 /* ── ATTRACTION GRID ── */
-.att-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(30rem, 1fr)); gap: 2.4rem; }
+.att-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(28rem, 1fr)); gap: 2.4rem; }
 
-/* ── ATTRACTION CARD ── */
+/* ── ATTRACTION CARD (matches dashboard style) ── */
 .att-card {
     background: #fff; border-radius: 1.6rem; overflow: hidden;
     box-shadow: 0 2px 12px rgba(0,0,0,.06);
-    border: 2px solid #e2e8f0; transition: all .2s;
-    cursor: pointer; position: relative;
-    display: flex; flex-direction: column;
+    border: 2px solid transparent; transition: all .2s;
+    cursor: pointer; position: relative; display: flex; flex-direction: column;
 }
-.att-card:hover { transform: translateY(-4px); box-shadow: 0 8px 28px rgba(0,0,0,.1); }
+.att-card:hover { transform: translateY(-4px); box-shadow: 0 8px 28px rgba(0,0,0,.12); border-color: #e2e8f0; }
 .att-card.selected { border-color: var(--pengo-blue); box-shadow: 0 0 0 4px rgba(37,99,235,.12); }
 .att-card .check-badge {
-    position: absolute; top: 1.2rem; right: 1.2rem; z-index: 2;
-    width: 3.2rem; height: 3.2rem; border-radius: 50%;
+    position: absolute; top: 1rem; right: 1rem; z-index: 3;
+    width: 2.8rem; height: 2.8rem; border-radius: 50%;
     background: var(--pengo-blue); color: #fff;
-    font-size: 1.6rem; font-weight: 700;
+    font-size: 1.4rem; font-weight: 700;
     display: none; align-items: center; justify-content: center;
     box-shadow: 0 2px 8px rgba(37,99,235,.4);
 }
 .att-card.selected .check-badge { display: flex; }
-
-/* Photo container with ken burns */
-.att-photo-wrap { position: relative; overflow: hidden; height: 18rem; flex-shrink: 0; }
-.att-photo {
-    width: 100%; height: 100%; object-fit: cover;
-    background-size: cover; background-position: center;
-    animation: kenBurns 12s ease-in-out infinite alternate;
+.att-photo-wrap {
+    position: relative; overflow: hidden;
+    height: 20rem; flex-shrink: 0; background: #e2e8f0;
 }
-@keyframes kenBurns { from { transform: scale(1); } to { transform: scale(1.08); } }
-.att-photo-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(to top, rgba(0,0,0,.6) 0%, transparent 100%); padding: 2.4rem 1.4rem 1rem; }
-.cat-chip {
-    display: inline-block;
-    background: rgba(255,255,255,.9); color: #374151;
-    font-size: 1.1rem; font-weight: 700;
-    padding: .25rem .9rem; border-radius: 2rem; text-transform: capitalize;
+.att-photo-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo-overlay {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,.55) 0%, transparent 100%);
+    padding: 2rem 1.2rem .9rem;
+    display: flex; align-items: flex-end; justify-content: space-between;
 }
-.att-score-bar {
-    position: absolute; bottom: 0; left: 0; right: 0; height: .35rem;
-    background: rgba(255,255,255,.2);
+.cat-badge {
+    background: rgba(255,255,255,.92); color: #1e293b;
+    font-size: 1.15rem; font-weight: 700; padding: .28rem 1rem;
+    border-radius: 2rem; text-transform: capitalize;
 }
-.att-score-fill { height: 100%; background: linear-gradient(90deg, #2563eb, #7c3aed); transition: width 1s; }
-
-.att-body { padding: 1.6rem; flex: 1; display: flex; flex-direction: column; }
-.att-name { font-size: 1.7rem; font-weight: 800; color: #1e293b; margin-bottom: .6rem; }
-.att-rating-row { display: flex; align-items: center; gap: .6rem; margin-bottom: 1rem; }
-.att-stars { color: var(--pengo-amber); font-size: 1.4rem; }
-.att-rating-val { font-size: 1.4rem; font-weight: 700; color: #374151; }
-.att-reviews { font-size: 1.2rem; color: #94a3b8; }
-.att-meta-row { display: flex; gap: 1.6rem; flex-wrap: wrap; margin-bottom: auto; }
-.att-meta-item { font-size: 1.35rem; color: #64748b; display: flex; align-items: center; gap: .4rem; }
-.att-meta-item strong { color: #374151; }
+.match-pill {
+    background: var(--pengo-blue); color: #fff;
+    font-size: 1.1rem; font-weight: 700; padding: .28rem .9rem;
+    border-radius: 2rem;
+}
+.att-body { padding: 1.4rem 1.6rem 1.6rem; flex: 1; display: flex; flex-direction: column; gap: .5rem; }
+.att-name { font-size: 1.6rem; font-weight: 800; color: #1e293b; line-height: 1.25; }
+.att-loc { display: flex; align-items: center; gap: .4rem; font-size: 1.25rem; color: #64748b; }
+.att-meta { display: flex; align-items: center; gap: .5rem; font-size: 1.3rem; color: #374151; }
+.att-stars { color: var(--pengo-amber); }
+.att-rval { font-weight: 700; }
+.att-tags { margin-top: .2rem; }
+.att-tag { display: inline-block; padding: .3rem 1rem; border-radius: 2rem; font-size: 1.15rem; font-weight: 600; }
+.att-tag-free { background: #dbeafe; color: #1d4ed8; }
 .att-add-btn {
-    margin-top: 1.4rem;
-    padding: 1rem; border-radius: .8rem;
-    font-size: 1.45rem; font-weight: 700;
+    margin-top: auto; padding: .9rem 1.2rem; border-radius: .8rem;
+    font-size: 1.4rem; font-weight: 700;
     border: 2px solid #e2e8f0; background: #fff; color: #374151;
-    cursor: pointer; transition: all .2s; width: 100%;
+    cursor: pointer; transition: all .18s; width: 100%;
 }
 .att-add-btn:hover { border-color: var(--pengo-blue); color: var(--pengo-blue); background: #eff6ff; }
-.att-card.selected .att-add-btn { border-color: var(--pengo-blue); background: #eff6ff; color: var(--pengo-blue); }
+.att-card.selected .att-add-btn { border-color: var(--pengo-blue); background: var(--pengo-blue); color: #fff; }
 
 /* ── GENERATE BAR ── */
 .gen-bar {
@@ -405,18 +402,65 @@ function applyFilters() {
     renderGrid();
 }
 
-/* ─── GRID ─── */
-const ICONS = {nature:'🌿',food:'🍜',history:'🏛️',shopping:'🛍️',adventure:'🧗',relaxation:'🧘'};
-function catColor(cat) {
-    return {nature:'#dcfce7,#bbf7d0',food:'#fef9c3,#fde68a',history:'#dbeafe,#bfdbfe',
-            shopping:'#fce7f3,#fbcfe8',adventure:'#ffe4e6,#fecaca',relaxation:'#ede9fe,#ddd6fe'}[cat] || '#e2e8f0,#cbd5e1';
+/* ─── HELPERS ─── */
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function cap(s) { return s ? s.charAt(0).toUpperCase()+s.slice(1) : ''; }
+
+function _onPhotoLoad(img) { img.closest('.att-card').style.opacity = '1'; }
+function _onPhotoErr(img, hasManualUrl) {
+    const card = img.closest('.att-card');
+    if (hasManualUrl) card.style.opacity = '1';
+    else card.remove();
 }
+
 function starsHTML(rating) {
-    if (!rating) return '<span style="color:#94a3b8;font-size:1.3rem;">No rating</span>';
+    if (!rating) return '<span style="color:#94a3b8;font-size:1.3rem;">No rating yet</span>';
     const full = Math.floor(rating), half = (rating%1)>=.5;
-    let s = '★'.repeat(full);
-    if (half) s += '½';
-    return `<span class="att-stars">${s}</span> <span class="att-rating-val">${rating.toFixed(1)}</span>`;
+    return `<span class="att-stars">${'★'.repeat(full)}${half?'½':''}</span><span class="att-rval">${rating.toFixed(1)}</span>`;
+}
+
+function buildCard(r) {
+    const sel = selectedIds.has(r.attraction_id);
+    const scoreW = Math.round((r.recommendation_score||0)*100);
+    const photoSrc = r.photo_reference
+        ? `/api/photo?ref=${encodeURIComponent(r.photo_reference)}&w=600`
+        : (r.photo_url || null);
+    const hasManualUrl = !r.photo_reference && !!r.photo_url;
+    const photoHtml = photoSrc
+        ? `<img src="${photoSrc}" alt="${esc(r.name)}"
+               onload="_onPhotoLoad(this)"
+               onerror="_onPhotoErr(this,${hasManualUrl})">`
+        : ``;
+
+    const card = document.createElement('div');
+    card.className = 'att-card' + (sel ? ' selected' : '');
+    if (photoSrc && !sel) card.style.opacity = '0';
+    card.dataset.id = r.attraction_id;
+    card.innerHTML = `
+        <div class="check-badge">✓</div>
+        <div class="att-photo-wrap">
+            ${photoHtml}
+            <div class="photo-overlay">
+                <span class="cat-badge">${esc(cap(r.category))}</span>
+                ${scoreW > 0 ? `<span class="match-pill">${scoreW}% match</span>` : ''}
+            </div>
+        </div>
+        <div class="att-body">
+            <div class="att-name">${esc(r.name)}</div>
+            <div class="att-loc">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5" style="flex-shrink:0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                ${esc(r.city || destination)}
+            </div>
+            <div class="att-meta">${starsHTML(r.rating)}</div>
+            <div class="att-tags">
+                <span class="att-tag att-tag-free">${esc(cap(r.category))}</span>
+            </div>
+            <button class="att-add-btn" onclick="event.stopPropagation();toggleById(${r.attraction_id},this.closest('.att-card'))">
+                ${sel ? 'Added to Plan' : 'Add to Plan'}
+            </button>
+        </div>`;
+    card.addEventListener('click', e => { if (e.target.tagName !== 'BUTTON') toggleById(r.attraction_id, card); });
+    return card;
 }
 
 function renderGrid() {
@@ -426,43 +470,9 @@ function renderGrid() {
         return;
     }
     grid.innerHTML = '';
-    filtered.forEach((r, idx) => {
-        const isSelected = selectedIds.has(r.attraction_id);
-        const scoreW = Math.round((r.recommendation_score||0)*100);
-        const photoUrl = r.photo_reference
-            ? `/api/photo?ref=${encodeURIComponent(r.photo_reference)}&w=600`
-            : null;
-        const bgStyle = photoUrl
-            ? `background-image:url('${photoUrl}');background-size:cover;background-position:center;`
-            : `background:linear-gradient(135deg,${catColor(r.category)});display:flex;align-items:center;justify-content:center;font-size:5.6rem;`;
-        const photoInner = photoUrl ? '' : `<span>${ICONS[r.category]||'📍'}</span>`;
-
-        const card = document.createElement('div');
-        card.className = 'att-card' + (isSelected ? ' selected' : '');
-        card.dataset.id = r.attraction_id;
-        card.innerHTML = `
-            <div class="check-badge">✓</div>
-            <div class="att-photo-wrap">
-                <div class="att-photo" style="${bgStyle}">${photoInner}</div>
-                <div class="att-photo-overlay">
-                    <span class="cat-chip">${ICONS[r.category]||'📍'} ${r.category||'place'}</span>
-                </div>
-                <div class="att-score-bar"><div class="att-score-fill" style="width:${scoreW}%"></div></div>
-            </div>
-            <div class="att-body">
-                <div class="att-name">${r.name}</div>
-                <div class="att-rating-row">${starsHTML(r.rating)}</div>
-                <div class="att-meta-row">
-                    <div class="att-meta-item">💵 <strong>${r.entry_cost ? '$'+r.entry_cost.toFixed(0)+' entry' : 'Free entry'}</strong></div>
-                    <div class="att-meta-item">📍 ${r.city || destination}</div>
-                </div>
-                <button class="att-add-btn" onclick="event.stopPropagation();toggleById(${r.attraction_id}, this.closest('.att-card'))">
-                    ${isSelected ? '✓ Added to Plan' : '+ Add to Plan'}
-                </button>
-            </div>`;
-        card.addEventListener('click', (e) => { if (e.target.tagName!=='BUTTON') toggleById(r.attraction_id, card); });
-        grid.appendChild(card);
-    });
+    const frag = document.createDocumentFragment();
+    filtered.forEach(r => frag.appendChild(buildCard(r)));
+    grid.appendChild(frag);
 }
 
 /* ─── SELECTION ─── */
@@ -476,14 +486,14 @@ function toggleById(id, cardEl) {
     // Update the clicked card
     cardEl.classList.toggle('selected', !removing);
     const btn = cardEl.querySelector('.att-add-btn');
-    if (btn) btn.textContent = removing ? '+ Add to Plan' : '✓ Added to Plan';
+    if (btn) btn.textContent = removing ? 'Add to Plan' : 'Added to Plan';
 
     // Sync all att-grid cards with this id
     document.querySelectorAll('.att-card[data-id="'+id+'"]').forEach(ac => {
         if (ac === cardEl) return;
         ac.classList.toggle('selected', !removing);
         const b = ac.querySelector('.att-add-btn');
-        if (b) b.textContent = removing ? '+ Add to Plan' : '✓ Added to Plan';
+        if (b) b.textContent = removing ? 'Add to Plan' : 'Added to Plan';
     });
     // Sync all trending cards with this id
     document.querySelectorAll('.trending-card[data-id="'+id+'"]').forEach(tc => {

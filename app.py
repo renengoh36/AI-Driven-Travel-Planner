@@ -18,6 +18,12 @@ def ensure_schema():
             )
             db.session.commit()
             print("Added missing attractions.photo_reference column.")
+        if "photo_url" not in cols:
+            db.session.execute(
+                text("ALTER TABLE attractions ADD COLUMN photo_url VARCHAR(500) NULL")
+            )
+            db.session.commit()
+            print("Added missing attractions.photo_url column.")
 
     # Ensure attraction_feedback table exists
     if "attraction_feedback" not in tables:

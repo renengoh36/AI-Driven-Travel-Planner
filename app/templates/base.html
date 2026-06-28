@@ -173,14 +173,16 @@
            FAQ CHATBOT WIDGET
         ═══════════════════════════════════════════ */
         .chatbot-fab {
-            position: fixed; bottom: 2.8rem; right: 2.8rem; z-index: 500;
+            position: fixed; z-index: 500;
             width: 5.6rem; height: 5.6rem; border-radius: 50%;
             background: linear-gradient(135deg, var(--pengo-blue), #7c3aed);
-            border: none; cursor: pointer; box-shadow: 0 4px 20px rgba(37,99,235,0.4);
+            border: none; cursor: grab; box-shadow: 0 4px 20px rgba(37,99,235,0.4);
             display: flex; align-items: center; justify-content: center;
-            transition: transform .2s, box-shadow .2s;
+            transition: box-shadow .2s;
+            user-select: none;
         }
-        .chatbot-fab:hover { transform: scale(1.08); box-shadow: 0 6px 28px rgba(37,99,235,0.5); }
+        .chatbot-fab:hover { box-shadow: 0 6px 28px rgba(37,99,235,0.5); }
+        .chatbot-fab.dragging { cursor: grabbing; transform: scale(1.08); }
         .chatbot-fab svg { width: 2.6rem; height: 2.6rem; fill: none; stroke: #fff; stroke-width: 2; }
         .chatbot-badge {
             position: absolute; top: 0; right: 0;
@@ -191,7 +193,7 @@
         }
 
         .chatbot-panel {
-            position: fixed; bottom: 10rem; right: 2.8rem; z-index: 500;
+            position: fixed; z-index: 500;
             width: 35rem; max-height: 52rem;
             background: #fff; border-radius: 1.6rem;
             box-shadow: 0 16px 48px rgba(0,0,0,0.16);
@@ -245,8 +247,7 @@
         .chat-send-btn svg { width: 1.5rem; height: 1.5rem; }
 
         @media (max-width: 600px) {
-            .chatbot-panel { right: 1.2rem; left: 1.2rem; width: auto; bottom: 8rem; }
-            .chatbot-fab { bottom: 1.6rem; right: 1.6rem; }
+            .chatbot-panel { width: calc(100vw - 2.4rem); }
         }
     </style>
 
@@ -362,7 +363,7 @@
     {% endblock %}
 
     <!-- ═══ FAQ CHATBOT ═══ -->
-    <button class="chatbot-fab" onclick="toggleChat()" aria-label="Help & FAQ">
+    <button class="chatbot-fab" id="chatbotFab" aria-label="Help & FAQ">
         <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         <div class="chatbot-badge">?</div>
     </button>
@@ -420,7 +421,7 @@
             const av = document.getElementById('sidebar-avatar');
             if (av) av.textContent = name.charAt(0).toUpperCase();
             const tu = document.getElementById('topbar-username');
-            if (tu) tu.textContent = name.split(' ')[0];
+            if (tu) tu.textContent = name;
         }
         if (persona) {
             const el = document.getElementById('sidebar-persona');
@@ -454,11 +455,118 @@
 
     /* ─── Chatbot ─── */
     let _chatReady = false;
+    let _dragDistance = 0;
+
     function toggleChat() {
+        if (_dragDistance > 5) return;
         const panel = document.getElementById('chatbotPanel');
         panel.classList.toggle('open');
         if (panel.classList.contains('open') && !_chatReady) { _chatReady = true; initChatbot(); }
+        if (panel.classList.contains('open')) _positionPanel();
     }
+
+    function _positionPanel() {
+        const fab   = document.getElementById('chatbotFab');
+        const panel = document.getElementById('chatbotPanel');
+        const fabR  = fab.getBoundingClientRect();
+        const pH    = 520, pW = 350;
+        let px = fabR.left;
+        let py = fabR.top - pH - 12;
+        if (py < 10)                       py = fabR.bottom + 12;
+        if (px + pW > window.innerWidth - 10) px = window.innerWidth - pW - 10;
+        if (px < 10)                       px = 10;
+        panel.style.left   = px + 'px';
+        panel.style.top    = py + 'px';
+        panel.style.bottom = 'auto';
+        panel.style.right  = 'auto';
+    }
+
+    /* ─── Draggable FAB ─── */
+    (function () {
+        const fab = document.getElementById('chatbotFab');
+        const FAB_SIZE = 56;
+
+        function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+        function applyPos(x, y) {
+            x = clamp(x, 0, window.innerWidth  - FAB_SIZE);
+            y = clamp(y, 0, window.innerHeight - FAB_SIZE);
+            fab.style.left   = x + 'px';
+            fab.style.top    = y + 'px';
+            fab.style.bottom = 'auto';
+            fab.style.right  = 'auto';
+        }
+
+        // Load saved or default position (bottom-left)
+        const saved = JSON.parse(localStorage.getItem('chatbot_pos') || 'null');
+        applyPos(
+            saved ? saved.x : 28,
+            saved ? saved.y : window.innerHeight - FAB_SIZE - 28
+        );
+
+        let startMX, startMY, startFX, startFY;
+
+        function onMove(cx, cy) {
+            const dx = cx - startMX, dy = cy - startMY;
+            _dragDistance = Math.sqrt(dx * dx + dy * dy);
+            if (_dragDistance > 5) {
+                fab.classList.add('dragging');
+                applyPos(startFX + dx, startFY + dy);
+            }
+        }
+
+        function onEnd() {
+            fab.classList.remove('dragging');
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup',   onMouseUp);
+            if (_dragDistance > 5) {
+                localStorage.setItem('chatbot_pos', JSON.stringify({
+                    x: parseInt(fab.style.left),
+                    y: parseInt(fab.style.top),
+                }));
+            }
+        }
+
+        function onMouseMove(e) { onMove(e.clientX, e.clientY); }
+        function onMouseUp()    { onEnd(); }
+
+        fab.addEventListener('mousedown', e => {
+            if (e.button !== 0) return;
+            _dragDistance = 0;
+            startMX = e.clientX; startMY = e.clientY;
+            startFX = parseInt(fab.style.left) || 28;
+            startFY = parseInt(fab.style.top)  || window.innerHeight - FAB_SIZE - 28;
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup',   onMouseUp);
+        });
+
+        fab.addEventListener('click', () => toggleChat());
+
+        // Touch support
+        fab.addEventListener('touchstart', e => {
+            _dragDistance = 0;
+            const t = e.touches[0];
+            startMX = t.clientX; startMY = t.clientY;
+            startFX = parseInt(fab.style.left) || 28;
+            startFY = parseInt(fab.style.top)  || window.innerHeight - FAB_SIZE - 28;
+        }, { passive: true });
+
+        fab.addEventListener('touchmove', e => {
+            const t = e.touches[0];
+            onMove(t.clientX, t.clientY);
+            if (_dragDistance > 5) e.preventDefault();
+        }, { passive: false });
+
+        fab.addEventListener('touchend', () => {
+            fab.classList.remove('dragging');
+            if (_dragDistance > 5) {
+                localStorage.setItem('chatbot_pos', JSON.stringify({
+                    x: parseInt(fab.style.left),
+                    y: parseInt(fab.style.top),
+                }));
+            }
+        });
+    })();
     function initChatbot() {
         addBotMessage("Hi there! I'm the Pengo Assistant. Tell me what you love — I'll update your recommendations instantly. Or ask me anything about your trip!");
         setTimeout(() => showQuickReplies(['🌿 I prefer nature', '🍜 Food & dining', '🏛️ History & culture', '💰 Budget travel', 'Rate my last trip', 'How does Pengo work?']), 900);
