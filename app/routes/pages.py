@@ -46,3 +46,8 @@ def about():
 @pages_bp.route("/profile")
 def profile():
     return render_template("profile.html", body_class="app-page")
+
+
+@pages_bp.route("/chat")
+def chat():
+    return render_template("chat.html", body_class="app-page")

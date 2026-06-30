@@ -280,6 +280,10 @@
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 My Preferences
             </a>
+            <a href="/chat" id="nav-chat">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                AI Assistant
+            </a>
             <a href="/about" id="nav-about">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                 About Pengo
@@ -492,36 +496,33 @@
         addUserMessage(t); inp.value = '';
         setTimeout(() => processChat(t), 300);
     }
-    const _catKw = { nature:['nature','outdoor','park','beach','hiking','forest','scenic','garden'], food:['food','restaurant','eat','dining','cuisine','cafe','foodie','lunch','dinner'], history:['history','museum','culture','historical','heritage','ancient','landmark'], shopping:['shopping','mall','shop','market','buy','retail','boutique'], adventure:['adventure','thrill','extreme','sport','active','adrenaline','climb'], relaxation:['relax','spa','calm','peaceful','yoga','wellness','massage'] };
-    const _budKw = { budget:['budget','cheap','affordable','save money','low cost','backpack'], 'mid-range':['mid-range','moderate','medium budget'], luxury:['luxury','premium','high end','splurge','expensive','first class','5 star'] };
+    /* processChat — calls the backend NLP engine (POST /api/chat) */
     async function processChat(text) {
-        const t = text.toLowerCase();
-        if (/rate|feedback|review|how was|my (trip|itinerary)|just came back/.test(t)) { addBotMessage("How would you rate your Pengo-planned trip? Tap a star:"); setTimeout(showRatingWidget, 900); return; }
-        for (const [cat, kws] of Object.entries(_catKw)) { if (kws.some(k => t.includes(k))) { await updateInterest(cat); return; } }
-        for (const [bud, kws] of Object.entries(_budKw)) { if (kws.some(k => t.includes(k))) { await updateBudget(bud); return; } }
-        if (/how.*work|what is pengo|about pengo/.test(t)) { addBotMessage("Pengo learns your travel style — budget, interests, and climate — then picks the best attractions for you in any city worldwide. Search a destination and get a personalised, day-by-day itinerary in seconds."); return; }
-        if (/free|cost|price|pay|subscription/.test(t)) { addBotMessage("Pengo is 100% free. No credit card, no subscription — just sign up and start exploring."); return; }
-        if (/city|destination|where|country|cover/.test(t)) { addBotMessage("Any city, any country! Pengo fetches live attraction data when you search, so there's no limit on destinations."); return; }
-        if (/itinerary|plan|route|schedule/.test(t)) { addBotMessage("After you pick your favourite attractions, Pengo sorts them by location to minimise travel time, then builds a day-by-day schedule. No more zigzagging across the city!"); return; }
-        if (/prefer|interest|change|update|profile/.test(t)) { addBotMessage("Just tell me what you love!"); setTimeout(() => showQuickReplies(['🌿 Nature', '🍜 Food', '🏛️ History', '💰 Budget', '✨ Luxury']), 800); return; }
-        if (/hello|hi |hey|hola/.test(t)) { addBotMessage("Hi! 😊 How can I help with your trip?"); setTimeout(() => showQuickReplies(['Update preferences', 'Rate my last trip', 'How does Pengo work?']), 800); return; }
-        addBotMessage("I can update your travel preferences or answer questions! Try saying 'I prefer nature' or 'rate my trip'.");
-        setTimeout(() => showQuickReplies(['🌿 Nature', '🍜 Food', '💰 Budget travel', 'Rate my trip']), 900);
-    }
-    async function updateInterest(cat) {
         const uid = localStorage.getItem('user_id');
-        const labels = {nature:'nature & outdoors', food:'food & dining', history:'history & culture', shopping:'shopping', adventure:'adventure', relaxation:'relaxation & wellness'};
-        if (!uid) { addBotMessage(`Great taste! <a href="/register" style="color:var(--pengo-blue)">Sign up</a> to save your ${labels[cat]} preference.`); return; }
-        addBotMessage(`Got it! I've added <strong>${labels[cat]}</strong> to your interests. Your next search will prioritise these spots.`);
-        try { await fetch(`/api/users/${uid}/preferences`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({add_interest:cat})}); } catch(e){}
-    }
-    async function updateBudget(bud) {
-        const uid = localStorage.getItem('user_id');
-        const labels = {budget:'budget-friendly', 'mid-range':'mid-range', luxury:'luxury'};
-        if (!uid) { addBotMessage(`Noted! <a href="/register" style="color:var(--pengo-blue)">Sign up</a> to save your ${labels[bud]} preference.`); return; }
-        addBotMessage(`Updated! I'll prioritise <strong>${labels[bud]}</strong> options from now on.`);
-        localStorage.setItem('budget_type', bud);
-        try { await fetch(`/api/users/${uid}/preferences`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({budget_type:bud})}); } catch(e){}
+        const body = { message: text };
+        if (uid) body.user_id = parseInt(uid);
+        try {
+            const res  = await fetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+            const data = await res.json();
+            if (!res.ok) { addBotMessage("Sorry, something went wrong. Please try again."); return; }
+            addBotMessage(data.reply);
+            /* surface quick replies based on intent */
+            const qrMap = {
+                greet:              ['🌍 Set destination', '💰 Update budget', '🎯 Update interests', 'help'],
+                update_destination: ['📅 Set travel days', '💰 Set budget', '🎯 Add interests'],
+                update_days:        ['💰 Set budget', '🎯 Add interests', '📋 Plan my trip'],
+                update_budget:      ['🌿 Nature', '🍜 Food & dining', '🏛️ History', '🛍️ Shopping'],
+                update_interests:   ['📋 Plan my trip', '💰 Change budget', '🌤️ Set weather preference'],
+                update_weather:     ['📋 Plan my trip', '🌍 Change destination'],
+                generate_itinerary: ['📋 View my itinerary', '✏️ Update preferences'],
+                rate_itinerary:     ['📋 View my itinerary', '🌍 Plan another trip'],
+                help:               ['🌍 I want to go to Tokyo', '💰 I prefer luxury', '📅 5 days'],
+            };
+            const qr = qrMap[data.intent];
+            if (qr) setTimeout(() => showQuickReplies(qr), 900);
+        } catch(e) {
+            addBotMessage("Connection error. Please check your network and try again.");
+        }
     }
     function showRatingWidget() {
         const msgs = document.getElementById('chatMessages');
