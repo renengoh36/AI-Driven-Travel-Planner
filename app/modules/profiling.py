@@ -1,12 +1,3 @@
-"""
-User Profiling Module — Module 1 (Chapter 4, Algorithm 1)
-
-Assigns a travel persona to a new user using K-Means clustering on
-their onboarding responses (budget_type, weather_pref, interests).
-
-Encoding scheme matches the feature vector used in recommendation.py
-so that user vectors and attraction vectors live in the same space.
-"""
 
 import os
 import pickle

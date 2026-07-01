@@ -132,7 +132,7 @@ def onboarding():
             "error": f"Invalid interests: {invalid_interests}"
         }), 400
 
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
 
     if not user:
         return jsonify({
@@ -182,7 +182,7 @@ def onboarding():
 @auth_bp.route("/<int:user_id>/profile", methods=["GET"])
 def get_profile(user_id):
     """GET /api/users/<id>/profile — fetch current user profile."""
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({"error": "User not found."}), 404
     profile = UserProfile.query.filter_by(user_id=user_id).first()
@@ -196,7 +196,7 @@ def update_preferences(user_id):
     """PATCH /api/users/<id>/preferences — update individual preference fields from chatbot."""
     data = request.get_json(silent=True) or {}
 
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({"error": "User not found."}), 404
 

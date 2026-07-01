@@ -1,18 +1,3 @@
-"""
-Rule-Based NLP Chatbot Engine — Module 5 (Chapter 5, Section 5.1.3)
-
-Pipeline:
-    raw text → tokenise → strip stop-words → detect intent → extract entities → build reply
-
-Supported intents:
-    greet, goodbye, help, update_destination, update_days, update_budget,
-    update_interests, update_weather, generate_itinerary, view_itinerary,
-    rate_itinerary, unknown
-
-NLP tools: NLTK punkt tokeniser + English stopwords (falls back to a built-in
-word set if NLTK data is unavailable so the module always works).
-"""
-
 from __future__ import annotations
 
 import re

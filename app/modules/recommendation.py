@@ -1,14 +1,3 @@
-"""
-Personalised Recommendation Module — Modules 2 & 3 (Chapter 4, Algorithms 2 & 3)
-
-Algorithm 2 — Hybrid scoring:
-    final_score = (0.7 * cosine_similarity) + (0.3 * feedback_score)
-
-Algorithm 3 — Multi-criteria ranking:
-    rank_score = (0.5 * similarity) + (0.2 * rating) + (0.1 * popularity) + (0.2 * feedback)
-
-All input scores are normalised to [0, 1] before weighting.
-"""
 
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity

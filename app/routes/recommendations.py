@@ -5,9 +5,7 @@ from app.models.user import User
 from app.models.attraction import Attraction
 from app.modules.recommendation import recommend_attractions
 
-import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 import fetch_attractions
 
 rec_bp = Blueprint("recommendations", __name__)
@@ -75,7 +73,7 @@ def get_recommendations():
     if not user_id or not destination:
         return jsonify({"error": "user_id and destination are required."}), 400
 
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user or not user.profile:
         return jsonify({"error": "User profile not found. Complete onboarding first."}), 404
 
@@ -138,7 +136,7 @@ def persona_recommendations():
     except ValueError:
         return jsonify({"error": "Invalid user_id"}), 400
 
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user or not user.profile:
         return jsonify({"error": "User profile not found. Complete onboarding first."}), 404
 

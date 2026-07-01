@@ -1,11 +1,3 @@
-"""
-Distance Calculation & Route Optimisation Module — Module 4 (Chapter 4, Algorithm 4)
-
-1. Haversine formula — great-circle distance between two lat/lon points
-2. Pairwise distance matrix for a set of attractions
-3. Nearest-neighbour TSP heuristic — efficient visiting order per day
-4. Time-slot assignment — day_number, start_time, end_time, visit_order
-"""
 
 import math
 import datetime

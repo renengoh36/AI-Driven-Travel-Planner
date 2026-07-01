@@ -31,7 +31,7 @@ def generate_itinerary():
             "error": "user_id, destination, attraction_ids, and travel_days are required."
         }), 400
 
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({"error": "User not found."}), 404
 
@@ -85,7 +85,7 @@ def generate_itinerary():
 @itinerary_bp.route("/<int:itinerary_id>", methods=["GET"])
 def get_itinerary(itinerary_id):
     """GET /api/itinerary/<id> — fetch a saved itinerary with all items."""
-    itinerary = Itinerary.query.get(itinerary_id)
+    itinerary = db.session.get(Itinerary, itinerary_id)
     if not itinerary:
         return jsonify({"error": "Itinerary not found."}), 404
 
@@ -126,7 +126,7 @@ def rate_itinerary(itinerary_id):
     if not (1 <= int(rating_score) <= 5):
         return jsonify({"error": "rating_score must be between 1 and 5."}), 400
 
-    itinerary = Itinerary.query.get(itinerary_id)
+    itinerary = db.session.get(Itinerary, itinerary_id)
     if not itinerary:
         return jsonify({"error": "Itinerary not found."}), 404
 
