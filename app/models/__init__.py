@@ -5,6 +5,8 @@ from .attraction import Attraction
 from .itinerary import Itinerary
 from .itinerary_item import ItineraryItem
 from .itinerary_rating import ItineraryRating
+from .user_behaviour import UserBehaviour
+from .attraction_feedback import AttractionFeedback
 
 __all__ = [
     "db",
@@ -14,4 +16,6 @@ __all__ = [
     "Itinerary",
     "ItineraryItem",
     "ItineraryRating",
+    "UserBehaviour",
+    "AttractionFeedback",
 ]

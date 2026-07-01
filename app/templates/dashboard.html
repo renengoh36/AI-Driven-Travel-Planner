@@ -106,19 +106,13 @@
 .check-badge { position:absolute; top:1rem; right:1rem; z-index:10; width:3rem; height:3rem; border-radius:50%; background:var(--b600); color:#fff; font-size:1.4rem; font-weight:700; display:none; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(37,99,235,.45); }
 .att-card.selected .check-badge { display:flex; }
 
-/* ── SLIDESHOW ── */
+/* ── PHOTO ── */
 .att-photo-wrap { position:relative; height:21rem; overflow:hidden; flex-shrink:0; background:var(--s200); }
-.att-slide { position:absolute; inset:0; opacity:0; transition:opacity .85s ease; }
-.att-slide.active { opacity:1; }
-.att-slide img { width:100%; height:100%; object-fit:cover; display:block; animation:kb 16s ease-in-out infinite alternate; }
-@keyframes kb{from{transform:scale(1)}to{transform:scale(1.09)}}
-.att-slide-bg { width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:2.4rem 2rem; text-align:center; }
+.att-photo-wrap img { width:100%; height:100%; object-fit:cover; display:block; }
+.att-fallback { width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:2.4rem 2rem; text-align:center; }
 .slide-cat { font-size:1.1rem; font-weight:800; text-transform:uppercase; letter-spacing:.14em; color:rgba(255,255,255,.55); margin-bottom:1rem; }
 .slide-name { font-size:1.9rem; font-weight:900; color:#fff; line-height:1.25; margin-bottom:.7rem; }
 .slide-city { font-size:1.25rem; color:rgba(255,255,255,.55); }
-.slide-dots { position:absolute; bottom:1rem; right:1.2rem; z-index:5; display:flex; gap:.4rem; }
-.sdot { width:.55rem; height:.55rem; border-radius:50%; background:rgba(255,255,255,.4); transition:all .3s; cursor:pointer; border:none; padding:0; }
-.sdot.active { background:#fff; width:1.4rem; border-radius:.3rem; }
 .photo-overlay { position:absolute; bottom:0; left:0; right:0; padding:2rem 1.6rem .8rem; background:linear-gradient(to top,rgba(0,0,0,.52) 0%,transparent 100%); z-index:3; display:flex; align-items:flex-end; justify-content:space-between; }
 .cat-badge { background:rgba(255,255,255,.92); color:var(--s700); font-size:1.1rem; font-weight:700; padding:.3rem 1rem; border-radius:2rem; text-transform:capitalize; }
 .match-pill { background:linear-gradient(135deg,var(--b600),var(--purple)); color:#fff; font-size:1.1rem; font-weight:800; padding:.3rem .9rem; border-radius:.5rem; }
@@ -393,7 +387,7 @@ if (!userId) window.location.href = '/login';
 // ── HERO ──
 const userName = localStorage.getItem('user_name') || 'Traveller';
 const persona  = localStorage.getItem('persona') || '';
-document.getElementById('hero-greeting').textContent = `Welcome back, ${userName.split(' ')[0]}!`;
+document.getElementById('hero-greeting').textContent = `Welcome back, ${userName}!`;
 if (persona) {
     document.getElementById('persona-text').textContent = persona;
     document.getElementById('persona-chip').style.display = 'inline-flex';
@@ -417,7 +411,7 @@ const cap = s => s ? s.charAt(0).toUpperCase()+s.slice(1) : '';
 const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
 // ── STATE ──
-let allRecs = [], filtered = [], selectedIds = new Set();
+let allRecs = [], filtered = [], selectedIds = new Set(), _personaRecs = [];
 let activeCat = '', activePrice = '';
 let availableCities = [], selectedCities = new Set();
 
@@ -433,6 +427,7 @@ async function loadPersonaRecs() {
     if (cached && Date.now() - cacheTs < CACHE_TTL) {
         try {
             allRecs = JSON.parse(cached);
+            _personaRecs = allRecs.slice();
             updateHeroStats(); applyFilters(); return;
         } catch(e) { /* fall through */ }
     }
@@ -445,6 +440,7 @@ async function loadPersonaRecs() {
         const data = await res.json();
         if (res.ok && data.recommendations?.length) {
             allRecs = data.recommendations;
+            _personaRecs = allRecs.slice();
             sessionStorage.setItem(CACHE_KEY, JSON.stringify(allRecs));
             sessionStorage.setItem(CACHE_TS, Date.now().toString());
             updateHeroStats(); applyFilters();
@@ -495,28 +491,51 @@ async function onCountryChange(country) {
     }
 }
 
+let activeCityPill = null; // null = All Cities (persona picks)
+
 function renderCityPills() {
     const row = document.getElementById('city-pills-row');
     row.innerHTML = '';
-    const allSel = selectedCities.size === availableCities.length;
-    // "All" pill
+    // "All Cities" pill — shows persona picks
     const allBtn = document.createElement('button');
-    allBtn.className = 'city-pill all-pill' + (allSel ? ' active' : '');
+    allBtn.className = 'city-pill all-pill' + (activeCityPill === null ? ' active' : '');
     allBtn.textContent = 'All Cities';
-    allBtn.onclick = () => { selectedCities = new Set(availableCities); renderCityPills(); applyFilters(); };
+    allBtn.onclick = () => {
+        activeCityPill = null;
+        renderCityPills();
+        // restore original persona picks
+        allRecs = _personaRecs.slice();
+        applyFilters();
+    };
     row.appendChild(allBtn);
-    // Individual city pills
+    // Individual city pills — fetch recommendations for that city
     availableCities.forEach(city => {
         const btn = document.createElement('button');
-        btn.className = 'city-pill' + (selectedCities.has(city) ? ' active' : '');
+        btn.className = 'city-pill' + (activeCityPill === city ? ' active' : '');
         btn.textContent = city;
-        btn.onclick = () => {
-            if (selectedCities.has(city)) { if (selectedCities.size > 1) selectedCities.delete(city); }
-            else selectedCities.add(city);
-            renderCityPills(); applyFilters();
-        };
+        btn.onclick = () => fetchCityRecs(city);
         row.appendChild(btn);
     });
+}
+
+async function fetchCityRecs(city) {
+    activeCityPill = city;
+    renderCityPills();
+    const grid = document.getElementById('att-grid');
+    grid.innerHTML = '<div class="ld-wrap"><span class="ld-dot"></span><span class="ld-dot"></span><span class="ld-dot"></span></div>';
+    try {
+        const res  = await fetch('/api/recommendations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: parseInt(userId), destination: city }),
+        });
+        const data = await res.json();
+        if (!res.ok) { showEmpty(data.error || `No attractions found for ${city}.`); return; }
+        allRecs = data.recommendations || [];
+        applyFilters();
+    } catch(e) {
+        showEmpty(`Could not load attractions for ${city}.`);
+    }
 }
 
 // ── FILTERS ──
@@ -535,7 +554,6 @@ function priceMatch(cost,f) {
 }
 function applyFilters() {
     filtered = allRecs.filter(r => {
-        if (availableCities.length > 0 && !selectedCities.has(r.city)) return false;
         if (activeCat && r.category !== activeCat) return false;
         if (!priceMatch(r.entry_cost, activePrice)) return false;
         return true;
@@ -558,7 +576,6 @@ function renderGrid() {
     const frag = document.createDocumentFragment();
     filtered.forEach(r => frag.appendChild(buildCard(r)));
     grid.appendChild(frag);
-    grid.querySelectorAll('.att-card').forEach((card, i) => setTimeout(() => startSlideshow(card), i * 40));
 }
 function showEmpty(msg) {
     document.getElementById('att-grid').innerHTML = `<div class="empty-state"><div class="empty-title">Ready to explore?</div><div class="empty-sub">${msg}</div></div>`;
@@ -570,34 +587,16 @@ function buildCard(r) {
     const sel    = selectedIds.has(r.attraction_id);
     const g      = CAT_GRADS[r.category] || ['#1e293b','#334155'];
     const scoreW = Math.round((r.recommendation_score||0)*100);
-    const hasPhoto = !!r.photo_reference;
 
-    // Slide 0: real Google photo (if available), active by default
-    // Slide 1: gradient with name+city as the visual fallback
-    let slidesHtml = '';
-    let count = 0;
-
-    if (hasPhoto) {
-        slidesHtml += `<div class="att-slide active" data-si="0">
-            <img src="/api/photo?ref=${encodeURIComponent(r.photo_reference)}&w=600"
-                 alt="${esc(r.name)}" loading="lazy" onerror="photoFallback(this)">
-        </div>`;
-        count++;
-    }
-
-    slidesHtml += `<div class="att-slide${hasPhoto ? '' : ' active'}" data-si="${count}">
-        <div class="att-slide-bg" style="background:linear-gradient(145deg,${g[0]},${g[1]});">
-            <div class="slide-cat">${esc(cap(r.category))}</div>
-            <div class="slide-name">${esc(r.name)}</div>
-            <div class="slide-city">${esc(r.city||'')}${r.country ? ', '+esc(r.country) : ''}</div>
-        </div>
-    </div>`;
-    count++;
-
-    // Only render dots when there are 2 slides (photo + gradient)
-    const dotsHtml = count > 1
-        ? `<div class="slide-dots"><button class="sdot active" data-d="0"></button><button class="sdot" data-d="1"></button></div>`
-        : '';
+    const photoSrc = r.photo_reference
+        ? `/api/photo?ref=${encodeURIComponent(r.photo_reference)}&w=600`
+        : (r.photo_url || null);
+    const hasManualUrl = !r.photo_reference && !!r.photo_url;
+    const photoHtml = photoSrc
+        ? `<img src="${photoSrc}" alt="${esc(r.name)}"
+               onload="_onPhotoLoad(this)"
+               onerror="_onPhotoErr(this,${hasManualUrl})">`
+        : ``;
 
     const starsHtml = r.rating
         ? `<span class="att-stars">${'★'.repeat(Math.floor(r.rating))}${(r.rating%1)>=.5?'½':''}</span><span class="att-rval">${r.rating.toFixed(1)}</span>`
@@ -605,16 +604,17 @@ function buildCard(r) {
 
     const card = document.createElement('div');
     card.className = 'att-card' + (sel ? ' selected' : '');
+    // hide only if has photo (onload reveals it); no-photo cards show immediately
+    if (r.photo_reference && !sel) card.style.opacity = '0';
     card.dataset.id = r.attraction_id;
     card.innerHTML = `
         <div class="check-badge">✓</div>
-        <div class="att-photo-wrap" data-active="0" data-count="${count}">
-            ${slidesHtml}
+        <div class="att-photo-wrap">
+            ${photoHtml}
             <div class="photo-overlay">
                 <span class="cat-badge">${esc(cap(r.category))}</span>
                 ${scoreW > 0 ? `<span class="match-pill">${scoreW}% match</span>` : ''}
             </div>
-            ${dotsHtml}
         </div>
         <div class="att-body">
             <div class="att-name">${esc(r.name)}</div>
@@ -624,7 +624,7 @@ function buildCard(r) {
             </div>
             <div class="att-rating-row">${starsHtml}</div>
             <div class="att-tags">
-                <span class="att-tag ${r.entry_cost ? 'att-tag-paid' : 'att-tag-free'}">${r.entry_cost ? '$'+r.entry_cost.toFixed(0)+' entry' : 'Free entry'}</span>
+                <span class="att-tag att-tag-free">${r.category ? r.category.charAt(0).toUpperCase() + r.category.slice(1) : ''}</span>
             </div>
             <button class="att-add-btn" onclick="event.stopPropagation();toggleCard(${r.attraction_id})">
                 ${sel ? 'Added to Plan' : 'Add to Plan'}
@@ -632,58 +632,55 @@ function buildCard(r) {
         </div>`;
 
     card.addEventListener('click', e => { if (e.target.tagName !== 'BUTTON') toggleCard(r.attraction_id); });
-    card.querySelectorAll('.sdot').forEach(dot => {
-        dot.addEventListener('click', e => {
-            e.stopPropagation();
-            goSlide(card.querySelector('.att-photo-wrap'), parseInt(dot.dataset.d));
-        });
-    });
     return card;
 }
 
-// ── PHOTO ERROR — fall to gradient ──
-function photoFallback(img) {
-    const slide = img.closest('.att-slide');
-    const wrap  = img.closest('.att-photo-wrap');
-    if (!slide || !wrap) return;
-    slide.classList.remove('active');
-    slide.style.display = 'none';
-    const vis = Array.from(wrap.querySelectorAll('.att-slide')).filter(s => s.style.display !== 'none');
-    if (vis.length) {
-        vis[0].classList.add('active');
-        const idx = Array.from(wrap.querySelectorAll('.att-slide')).indexOf(vis[0]);
-        wrap.querySelectorAll('.sdot').forEach((d,i) => d.classList.toggle('active', i===idx));
-        wrap.dataset.active = idx;
-    }
-}
-
-// ── SLIDESHOW ──
-const _tmrs = new Map();
-function startSlideshow(card) {
-    const wrap  = card.querySelector('.att-photo-wrap');
-    if (!wrap || parseInt(wrap.dataset.count) < 2) return;
-    function tick() {
-        const vis = Array.from(wrap.querySelectorAll('.att-slide')).filter(s => s.style.display !== 'none');
-        if (vis.length < 2) return;
-        const cur  = vis.find(s => s.classList.contains('active')) || vis[0];
-        const next = vis[(vis.indexOf(cur)+1) % vis.length];
-        goSlide(wrap, Array.from(wrap.querySelectorAll('.att-slide')).indexOf(next));
-    }
-    const t = setInterval(tick, 5000);
-    _tmrs.set(card, t);
-    card.addEventListener('mouseenter', () => clearInterval(_tmrs.get(card)));
-    card.addEventListener('mouseleave', () => { const t2 = setInterval(tick, 5000); _tmrs.set(card, t2); });
-}
-function goSlide(wrap, idx) {
-    Array.from(wrap.querySelectorAll('.att-slide')).forEach((s,i) => s.classList.toggle('active', i===idx));
-    wrap.querySelectorAll('.sdot').forEach((d,i) => d.classList.toggle('active', i===idx));
-    wrap.dataset.active = idx;
+function _onPhotoLoad(img) { img.closest('.att-card').style.opacity = '1'; }
+function _onPhotoErr(img, hasManualUrl) {
+    const card = img.closest('.att-card');
+    if (hasManualUrl) { card.style.opacity = '1'; } // show card even if manual URL also fails
+    else { card.remove(); }
 }
 
 // ── SELECTION ──
+let activeTripCity = null;
+
 function toggleCard(id) {
     const removing = selectedIds.has(id);
+
+    if (!removing) {
+        const rec = (filtered.length ? filtered : allRecs).find(r => r.attraction_id === id);
+        const recCity = rec?.city || null;
+
+        // Option A: if adding from a different city, prompt to clear
+        if (activeTripCity && recCity && recCity !== activeTripCity) {
+            if (!confirm(`Your current selection is for ${activeTripCity}.\n\nSwitch to ${recCity} and clear current selection?`)) return;
+            clearSelection();
+            activeTripCity = recCity;
+        } else if (recCity) {
+            activeTripCity = activeTripCity || recCity;
+        }
+    } else if (selectedIds.size === 1) {
+        activeTripCity = null; // last item removed, reset city lock
+    }
+
     removing ? selectedIds.delete(id) : selectedIds.add(id);
+    // Log attraction_add event for behavioural profiling (fire-and-forget)
+    if (!removing) {
+        const rec = (filtered.length ? filtered : allRecs).find(r => r.attraction_id === id);
+        if (rec && rec.category) {
+            fetch('/api/behaviour/log', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: parseInt(userId),
+                    event_type: 'attraction_add',
+                    category: rec.category,
+                    attraction_id: id,
+                }),
+            }).catch(() => {});   // silently ignore failures
+        }
+    }
     document.querySelectorAll(`.att-card[data-id="${id}"]`).forEach(c => {
         c.classList.toggle('selected', !removing);
         const b = c.querySelector('.att-add-btn');
@@ -693,6 +690,7 @@ function toggleCard(id) {
 }
 function clearSelection() {
     selectedIds.clear();
+    activeTripCity = null;
     document.querySelectorAll('.att-card').forEach(c => {
         c.classList.remove('selected');
         const b = c.querySelector('.att-add-btn'); if (b) b.textContent = 'Add to Plan';

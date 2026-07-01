@@ -173,14 +173,16 @@
            FAQ CHATBOT WIDGET
         ═══════════════════════════════════════════ */
         .chatbot-fab {
-            position: fixed; bottom: 2.8rem; right: 2.8rem; z-index: 500;
+            position: fixed; z-index: 500;
             width: 5.6rem; height: 5.6rem; border-radius: 50%;
             background: linear-gradient(135deg, var(--pengo-blue), #7c3aed);
-            border: none; cursor: pointer; box-shadow: 0 4px 20px rgba(37,99,235,0.4);
+            border: none; cursor: grab; box-shadow: 0 4px 20px rgba(37,99,235,0.4);
             display: flex; align-items: center; justify-content: center;
-            transition: transform .2s, box-shadow .2s;
+            transition: box-shadow .2s;
+            user-select: none;
         }
-        .chatbot-fab:hover { transform: scale(1.08); box-shadow: 0 6px 28px rgba(37,99,235,0.5); }
+        .chatbot-fab:hover { box-shadow: 0 6px 28px rgba(37,99,235,0.5); }
+        .chatbot-fab.dragging { cursor: grabbing; transform: scale(1.08); }
         .chatbot-fab svg { width: 2.6rem; height: 2.6rem; fill: none; stroke: #fff; stroke-width: 2; }
         .chatbot-badge {
             position: absolute; top: 0; right: 0;
@@ -191,7 +193,7 @@
         }
 
         .chatbot-panel {
-            position: fixed; bottom: 10rem; right: 2.8rem; z-index: 500;
+            position: fixed; z-index: 500;
             width: 35rem; max-height: 52rem;
             background: #fff; border-radius: 1.6rem;
             box-shadow: 0 16px 48px rgba(0,0,0,0.16);
@@ -245,8 +247,7 @@
         .chat-send-btn svg { width: 1.5rem; height: 1.5rem; }
 
         @media (max-width: 600px) {
-            .chatbot-panel { right: 1.2rem; left: 1.2rem; width: auto; bottom: 8rem; }
-            .chatbot-fab { bottom: 1.6rem; right: 1.6rem; }
+            .chatbot-panel { width: calc(100vw - 2.4rem); }
         }
     </style>
 
@@ -273,16 +274,16 @@
             </a>
             <a href="/itinerary" id="nav-itin">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                My Itinerary
+                Plan Itinerary
+            </a>
+            <a href="/my-trips" id="nav-trips">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.72 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.63 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                My Trips
             </a>
             <div class="sidebar-divider"></div>
             <a href="/profile" id="nav-profile">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 My Preferences
-            </a>
-            <a href="/chat" id="nav-chat">
-                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                AI Assistant
             </a>
             <a href="/about" id="nav-about">
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -362,7 +363,7 @@
     {% endblock %}
 
     <!-- ═══ FAQ CHATBOT ═══ -->
-    <button class="chatbot-fab" onclick="toggleChat()" aria-label="Help & FAQ">
+    <button class="chatbot-fab" id="chatbotFab" aria-label="Help & FAQ">
         <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         <div class="chatbot-badge">?</div>
     </button>
@@ -420,7 +421,7 @@
             const av = document.getElementById('sidebar-avatar');
             if (av) av.textContent = name.charAt(0).toUpperCase();
             const tu = document.getElementById('topbar-username');
-            if (tu) tu.textContent = name.split(' ')[0];
+            if (tu) tu.textContent = name;
         }
         if (persona) {
             const el = document.getElementById('sidebar-persona');
@@ -454,11 +455,118 @@
 
     /* ─── Chatbot ─── */
     let _chatReady = false;
+    let _dragDistance = 0;
+
     function toggleChat() {
+        if (_dragDistance > 5) return;
         const panel = document.getElementById('chatbotPanel');
         panel.classList.toggle('open');
         if (panel.classList.contains('open') && !_chatReady) { _chatReady = true; initChatbot(); }
+        if (panel.classList.contains('open')) _positionPanel();
     }
+
+    function _positionPanel() {
+        const fab   = document.getElementById('chatbotFab');
+        const panel = document.getElementById('chatbotPanel');
+        const fabR  = fab.getBoundingClientRect();
+        const pH    = 520, pW = 350;
+        let px = fabR.left;
+        let py = fabR.top - pH - 12;
+        if (py < 10)                       py = fabR.bottom + 12;
+        if (px + pW > window.innerWidth - 10) px = window.innerWidth - pW - 10;
+        if (px < 10)                       px = 10;
+        panel.style.left   = px + 'px';
+        panel.style.top    = py + 'px';
+        panel.style.bottom = 'auto';
+        panel.style.right  = 'auto';
+    }
+
+    /* ─── Draggable FAB ─── */
+    (function () {
+        const fab = document.getElementById('chatbotFab');
+        const FAB_SIZE = 56;
+
+        function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+        function applyPos(x, y) {
+            x = clamp(x, 0, window.innerWidth  - FAB_SIZE);
+            y = clamp(y, 0, window.innerHeight - FAB_SIZE);
+            fab.style.left   = x + 'px';
+            fab.style.top    = y + 'px';
+            fab.style.bottom = 'auto';
+            fab.style.right  = 'auto';
+        }
+
+        // Load saved or default position (bottom-left)
+        const saved = JSON.parse(localStorage.getItem('chatbot_pos') || 'null');
+        applyPos(
+            saved ? saved.x : 28,
+            saved ? saved.y : window.innerHeight - FAB_SIZE - 28
+        );
+
+        let startMX, startMY, startFX, startFY;
+
+        function onMove(cx, cy) {
+            const dx = cx - startMX, dy = cy - startMY;
+            _dragDistance = Math.sqrt(dx * dx + dy * dy);
+            if (_dragDistance > 5) {
+                fab.classList.add('dragging');
+                applyPos(startFX + dx, startFY + dy);
+            }
+        }
+
+        function onEnd() {
+            fab.classList.remove('dragging');
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup',   onMouseUp);
+            if (_dragDistance > 5) {
+                localStorage.setItem('chatbot_pos', JSON.stringify({
+                    x: parseInt(fab.style.left),
+                    y: parseInt(fab.style.top),
+                }));
+            }
+        }
+
+        function onMouseMove(e) { onMove(e.clientX, e.clientY); }
+        function onMouseUp()    { onEnd(); }
+
+        fab.addEventListener('mousedown', e => {
+            if (e.button !== 0) return;
+            _dragDistance = 0;
+            startMX = e.clientX; startMY = e.clientY;
+            startFX = parseInt(fab.style.left) || 28;
+            startFY = parseInt(fab.style.top)  || window.innerHeight - FAB_SIZE - 28;
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup',   onMouseUp);
+        });
+
+        fab.addEventListener('click', () => toggleChat());
+
+        // Touch support
+        fab.addEventListener('touchstart', e => {
+            _dragDistance = 0;
+            const t = e.touches[0];
+            startMX = t.clientX; startMY = t.clientY;
+            startFX = parseInt(fab.style.left) || 28;
+            startFY = parseInt(fab.style.top)  || window.innerHeight - FAB_SIZE - 28;
+        }, { passive: true });
+
+        fab.addEventListener('touchmove', e => {
+            const t = e.touches[0];
+            onMove(t.clientX, t.clientY);
+            if (_dragDistance > 5) e.preventDefault();
+        }, { passive: false });
+
+        fab.addEventListener('touchend', () => {
+            fab.classList.remove('dragging');
+            if (_dragDistance > 5) {
+                localStorage.setItem('chatbot_pos', JSON.stringify({
+                    x: parseInt(fab.style.left),
+                    y: parseInt(fab.style.top),
+                }));
+            }
+        });
+    })();
     function initChatbot() {
         addBotMessage("Hi there! I'm the Pengo Assistant. Tell me what you love — I'll update your recommendations instantly. Or ask me anything about your trip!");
         setTimeout(() => showQuickReplies(['🌿 I prefer nature', '🍜 Food & dining', '🏛️ History & culture', '💰 Budget travel', 'Rate my last trip', 'How does Pengo work?']), 900);
@@ -496,33 +604,36 @@
         addUserMessage(t); inp.value = '';
         setTimeout(() => processChat(t), 300);
     }
-    /* processChat — calls the backend NLP engine (POST /api/chat) */
+    const _catKw = { nature:['nature','outdoor','park','beach','hiking','forest','scenic','garden'], food:['food','restaurant','eat','dining','cuisine','cafe','foodie','lunch','dinner'], history:['history','museum','culture','historical','heritage','ancient','landmark'], shopping:['shopping','mall','shop','market','buy','retail','boutique'], adventure:['adventure','thrill','extreme','sport','active','adrenaline','climb'], relaxation:['relax','spa','calm','peaceful','yoga','wellness','massage'] };
+    const _budKw = { budget:['budget','cheap','affordable','save money','low cost','backpack'], 'mid-range':['mid-range','moderate','medium budget'], luxury:['luxury','premium','high end','splurge','expensive','first class','5 star'] };
     async function processChat(text) {
+        const t = text.toLowerCase();
+        if (/rate|feedback|review|how was|my (trip|itinerary)|just came back/.test(t)) { addBotMessage("How would you rate your Pengo-planned trip? Tap a star:"); setTimeout(showRatingWidget, 900); return; }
+        for (const [cat, kws] of Object.entries(_catKw)) { if (kws.some(k => t.includes(k))) { await updateInterest(cat); return; } }
+        for (const [bud, kws] of Object.entries(_budKw)) { if (kws.some(k => t.includes(k))) { await updateBudget(bud); return; } }
+        if (/how.*work|what is pengo|about pengo/.test(t)) { addBotMessage("Pengo learns your travel style — budget, interests, and climate — then picks the best attractions for you in any city worldwide. Search a destination and get a personalised, day-by-day itinerary in seconds."); return; }
+        if (/free|cost|price|pay|subscription/.test(t)) { addBotMessage("Pengo is 100% free. No credit card, no subscription — just sign up and start exploring."); return; }
+        if (/city|destination|where|country|cover/.test(t)) { addBotMessage("Any city, any country! Pengo fetches live attraction data when you search, so there's no limit on destinations."); return; }
+        if (/itinerary|plan|route|schedule/.test(t)) { addBotMessage("After you pick your favourite attractions, Pengo sorts them by location to minimise travel time, then builds a day-by-day schedule. No more zigzagging across the city!"); return; }
+        if (/prefer|interest|change|update|profile/.test(t)) { addBotMessage("Just tell me what you love!"); setTimeout(() => showQuickReplies(['🌿 Nature', '🍜 Food', '🏛️ History', '💰 Budget', '✨ Luxury']), 800); return; }
+        if (/hello|hi |hey|hola/.test(t)) { addBotMessage("Hi! 😊 How can I help with your trip?"); setTimeout(() => showQuickReplies(['Update preferences', 'Rate my last trip', 'How does Pengo work?']), 800); return; }
+        addBotMessage("I can update your travel preferences or answer questions! Try saying 'I prefer nature' or 'rate my trip'.");
+        setTimeout(() => showQuickReplies(['🌿 Nature', '🍜 Food', '💰 Budget travel', 'Rate my trip']), 900);
+    }
+    async function updateInterest(cat) {
         const uid = localStorage.getItem('user_id');
-        const body = { message: text };
-        if (uid) body.user_id = parseInt(uid);
-        try {
-            const res  = await fetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
-            const data = await res.json();
-            if (!res.ok) { addBotMessage("Sorry, something went wrong. Please try again."); return; }
-            addBotMessage(data.reply);
-            /* surface quick replies based on intent */
-            const qrMap = {
-                greet:              ['🌍 Set destination', '💰 Update budget', '🎯 Update interests', 'help'],
-                update_destination: ['📅 Set travel days', '💰 Set budget', '🎯 Add interests'],
-                update_days:        ['💰 Set budget', '🎯 Add interests', '📋 Plan my trip'],
-                update_budget:      ['🌿 Nature', '🍜 Food & dining', '🏛️ History', '🛍️ Shopping'],
-                update_interests:   ['📋 Plan my trip', '💰 Change budget', '🌤️ Set weather preference'],
-                update_weather:     ['📋 Plan my trip', '🌍 Change destination'],
-                generate_itinerary: ['📋 View my itinerary', '✏️ Update preferences'],
-                rate_itinerary:     ['📋 View my itinerary', '🌍 Plan another trip'],
-                help:               ['🌍 I want to go to Tokyo', '💰 I prefer luxury', '📅 5 days'],
-            };
-            const qr = qrMap[data.intent];
-            if (qr) setTimeout(() => showQuickReplies(qr), 900);
-        } catch(e) {
-            addBotMessage("Connection error. Please check your network and try again.");
-        }
+        const labels = {nature:'nature & outdoors', food:'food & dining', history:'history & culture', shopping:'shopping', adventure:'adventure', relaxation:'relaxation & wellness'};
+        if (!uid) { addBotMessage(`Great taste! <a href="/register" style="color:var(--pengo-blue)">Sign up</a> to save your ${labels[cat]} preference.`); return; }
+        addBotMessage(`Got it! I've added <strong>${labels[cat]}</strong> to your interests. Your next search will prioritise these spots.`);
+        try { await fetch(`/api/users/${uid}/preferences`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({add_interest:cat})}); } catch(e){}
+    }
+    async function updateBudget(bud) {
+        const uid = localStorage.getItem('user_id');
+        const labels = {budget:'budget-friendly', 'mid-range':'mid-range', luxury:'luxury'};
+        if (!uid) { addBotMessage(`Noted! <a href="/register" style="color:var(--pengo-blue)">Sign up</a> to save your ${labels[bud]} preference.`); return; }
+        addBotMessage(`Updated! I'll prioritise <strong>${labels[bud]}</strong> options from now on.`);
+        localStorage.setItem('budget_type', bud);
+        try { await fetch(`/api/users/${uid}/preferences`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({budget_type:bud})}); } catch(e){}
     }
     function showRatingWidget() {
         const msgs = document.getElementById('chatMessages');

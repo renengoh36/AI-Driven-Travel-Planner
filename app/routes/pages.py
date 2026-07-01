@@ -38,6 +38,11 @@ def itinerary():
     return render_template("itinerary.html", body_class="app-page")
 
 
+@pages_bp.route("/my-trips")
+def my_trips():
+    return render_template("my_trips.html", body_class="app-page")
+
+
 @pages_bp.route("/about")
 def about():
     return render_template("about.html")

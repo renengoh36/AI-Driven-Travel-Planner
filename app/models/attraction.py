@@ -15,6 +15,7 @@ class Attraction(db.Model):
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
     photo_reference = db.Column(db.Text, nullable=True)
+    photo_url = db.Column(db.String(500), nullable=True)  # manually assigned fallback image URL
 
     itinerary_items = db.relationship("ItineraryItem", backref="attraction")
 
@@ -31,4 +32,5 @@ class Attraction(db.Model):
             "latitude": self.latitude,
             "longitude": self.longitude,
             "photo_reference": self.photo_reference,
+            "photo_url": self.photo_url,
         }
