@@ -112,8 +112,7 @@ def get_recommendations():
     user_profile = user.profile.to_dict()
     user_profile["user_id"] = int(user_id)   # needed by CF module
 
-    # Only include attractions that have a photo (Google ref or manual URL)
-    attractions  = [a.to_dict() for a in attractions_db if a.photo_reference or a.photo_url]
+    attractions  = [a.to_dict() for a in attractions_db]
 
     # ── Load behaviour weights for behaviour-aware cosine similarity ──────
     bw = get_behaviour_weights(int(user_id), db.session)
@@ -210,7 +209,7 @@ def persona_recommendations():
 
     user_profile = user.profile.to_dict()
     user_profile["user_id"] = user_id
-    attractions  = [a.to_dict() for a in attractions_db if a.photo_reference or a.photo_url]
+    attractions  = [a.to_dict() for a in attractions_db]
 
     bw = get_behaviour_weights(user_id, db.session)
 

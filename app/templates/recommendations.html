@@ -308,21 +308,40 @@ const chipsEl = document.getElementById('exp-chips');
     const c = document.createElement('div'); c.className = 'exp-chip'; c.textContent = t; chipsEl.appendChild(c);
 });
 
-// Load data — deduplicate by attraction_id in case same place was fetched twice
-try {
-    const raw = JSON.parse(sessionStorage.getItem('recommendations') || '[]');
-    const seen = new Set();
-    allRecs = raw.filter(r => { if (seen.has(r.attraction_id)) return false; seen.add(r.attraction_id); return true; });
-} catch(e){}
-if (!allRecs.length) {
-    document.getElementById('att-grid').innerHTML = `<div class="empty-state">
-        <div class="big-icon">😕</div><h3>No results found</h3>
-        <p>We couldn't find attractions for this destination.</p>
-        <a href="/dashboard">← Try another city</a></div>`;
-} else {
-    buildTrending();
-    applyFilters();
-}
+// Always fetch fresh data — sessionStorage only used as fallback while loading
+if (!destination) { window.location.href = '/dashboard'; }
+
+document.getElementById('att-grid').innerHTML = `<div class="empty-state"><div class="big-icon">⏳</div><h3>Loading...</h3><p>Fetching attractions for ${destination}…</p></div>`;
+
+fetch('/api/recommendations', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ user_id: parseInt(userId), destination })
+})
+.then(res => res.json().then(data => ({ ok: res.ok, data })))
+.then(({ ok, data }) => {
+    if (ok && data.recommendations && data.recommendations.length) {
+        const seen = new Set();
+        allRecs = data.recommendations.filter(r => {
+            if (seen.has(r.attraction_id)) return false;
+            seen.add(r.attraction_id);
+            return true;
+        });
+        sessionStorage.setItem('recommendations', JSON.stringify(allRecs));
+        buildTrending();
+        applyFilters();
+    } else {
+        document.getElementById('att-grid').innerHTML =
+            `<div class="empty-state"><div class="big-icon">😕</div><h3>No results found</h3>`+
+            `<p>We couldn't find attractions for "${destination}".</p>`+
+            `<a href="/dashboard">← Try another city</a></div>`;
+    }
+})
+.catch(() => {
+    document.getElementById('att-grid').innerHTML =
+        `<div class="empty-state"><div class="big-icon">⚠️</div><h3>Connection error</h3>`+
+        `<p>Could not reach the server.</p><a href="/dashboard">← Go back</a></div>`;
+});
 
 /* ─── TRENDING ─── */
 function buildTrending() {
@@ -409,8 +428,25 @@ function cap(s) { return s ? s.charAt(0).toUpperCase()+s.slice(1) : ''; }
 function _onPhotoLoad(img) { img.closest('.att-card').style.opacity = '1'; }
 function _onPhotoErr(img, hasManualUrl) {
     const card = img.closest('.att-card');
-    if (hasManualUrl) card.style.opacity = '1';
-    else card.remove();
+    card.style.opacity = '1';
+    const wrap = img.closest('.att-photo-wrap');
+    if (wrap) {
+        const CAT_GRADS = {
+            nature:['#064e3b','#065f46'], food:['#78350f','#92400e'],
+            history:['#1e3a5f','#1e40af'], shopping:['#4a044e','#701a75'],
+            adventure:['#450a0a','#7f1d1d'], relaxation:['#1e1b4b','#3730a3'],
+        };
+        const name = card.querySelector('.att-name')?.textContent || '';
+        const cat  = card.dataset.category || '';
+        const city = card.querySelector('.att-city')?.textContent || '';
+        const g = CAT_GRADS[cat] || ['#1e293b','#334155'];
+        wrap.innerHTML = `<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;
+            justify-content:center;background:linear-gradient(145deg,${g[0]},${g[1]});padding:2rem;text-align:center;">
+            <div style="font-size:1rem;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.55);margin-bottom:.8rem;">${cat}</div>
+            <div style="font-size:1.5rem;font-weight:900;color:#fff;line-height:1.25;">${name}</div>
+            <div style="font-size:1.1rem;color:rgba(255,255,255,.55);margin-top:.5rem;">${city}</div>
+        </div>`;
+    }
 }
 
 function starsHTML(rating) {
@@ -426,16 +462,29 @@ function buildCard(r) {
         ? `/api/photo?ref=${encodeURIComponent(r.photo_reference)}&w=600`
         : (r.photo_url || null);
     const hasManualUrl = !r.photo_reference && !!r.photo_url;
+    const CAT_GRADS = {
+        nature:     ['#064e3b','#065f46'], food:       ['#78350f','#92400e'],
+        history:    ['#1e3a5f','#1e40af'], shopping:   ['#4a044e','#701a75'],
+        adventure:  ['#450a0a','#7f1d1d'], relaxation: ['#1e1b4b','#3730a3'],
+    };
+    const g = CAT_GRADS[r.category] || ['#1e293b','#334155'];
     const photoHtml = photoSrc
         ? `<img src="${photoSrc}" alt="${esc(r.name)}"
                onload="_onPhotoLoad(this)"
                onerror="_onPhotoErr(this,${hasManualUrl})">`
-        : ``;
+        : `<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;
+                       justify-content:center;background:linear-gradient(145deg,${g[0]},${g[1]});
+                       padding:2rem;text-align:center;">
+               <div style="font-size:1.1rem;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.55);margin-bottom:.8rem;">${esc(cap(r.category))}</div>
+               <div style="font-size:1.7rem;font-weight:900;color:#fff;line-height:1.25;">${esc(r.name)}</div>
+               <div style="font-size:1.2rem;color:rgba(255,255,255,.55);margin-top:.5rem;">${esc(r.city||'')}</div>
+           </div>`;
 
     const card = document.createElement('div');
     card.className = 'att-card' + (sel ? ' selected' : '');
     if (photoSrc && !sel) card.style.opacity = '0';
     card.dataset.id = r.attraction_id;
+    card.dataset.category = r.category || '';
     card.innerHTML = `
         <div class="check-badge">✓</div>
         <div class="att-photo-wrap">

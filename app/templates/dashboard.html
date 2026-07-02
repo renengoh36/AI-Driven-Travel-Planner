@@ -596,7 +596,12 @@ function buildCard(r) {
         ? `<img src="${photoSrc}" alt="${esc(r.name)}"
                onload="_onPhotoLoad(this)"
                onerror="_onPhotoErr(this,${hasManualUrl})">`
-        : ``;
+        : `<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+                       background:linear-gradient(145deg,${g[0]},${g[1]});padding:2rem;text-align:center;">
+               <div style="font-size:1.1rem;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.55);margin-bottom:.8rem;">${esc(cap(r.category))}</div>
+               <div style="font-size:1.9rem;font-weight:900;color:#fff;line-height:1.25;">${esc(r.name)}</div>
+               <div style="font-size:1.25rem;color:rgba(255,255,255,.55);margin-top:.5rem;">${esc(r.city||'')}</div>
+           </div>`;
 
     const starsHtml = r.rating
         ? `<span class="att-stars">${'★'.repeat(Math.floor(r.rating))}${(r.rating%1)>=.5?'½':''}</span><span class="att-rval">${r.rating.toFixed(1)}</span>`
