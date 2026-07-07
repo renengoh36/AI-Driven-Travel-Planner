@@ -136,6 +136,8 @@ _VIEW_VERB = {"show", "view", "see", "display", "check", "look", "get",
 _DEST_VERB = {"go", "travel", "visit", "fly", "heading", "going",
                "explore", "destination", "vacation", "holiday"}
 _RATE_KW   = {"rate", "rating", "stars", "feedback", "review", "score"}
+_SUGGEST_V = {"suggest", "recommend", "find", "show", "tell", "list", "give"}
+_SUGGEST_CTX = {"any", "good", "best", "top", "near", "nearby", "around", "where"}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -247,6 +249,30 @@ def extract_weather(tokens: list[str], text: str) -> str | None:
     return None
 
 
+def extract_place_keyword(text: str) -> str | None:
+    """
+    Extract the thing the user is searching for.
+    e.g. 'suggest ramen shop' → 'ramen shop'
+         'any good beach near Tokyo' → 'beach'
+         'find me a museum' → 'museum'
+    """
+    lower = text.lower()
+    patterns = [
+        r"(?:suggest|recommend|find\s+me?|show\s+me?|give\s+me?)\s+(?:a\s+|an\s+|some\s+|any\s+|me\s+a\s+|me\s+some\s+)?(.+?)(?:\s+(?:in|at|near|around|for)\s+|$)",
+        r"(?:any\s+good|best|top(?:\s+\d+)?)\s+(.+?)(?:\s+(?:in|at|near|around)\s+|$)",
+        r"where\s+(?:can\s+i\s+)?(?:find\s+|get\s+|eat\s+)?(.+?)(?:\s+(?:in|at|near)\s+|$)",
+    ]
+    for p in patterns:
+        m = re.search(p, lower)
+        if m:
+            kw = m.group(1).strip().rstrip("?.,!")
+            # Remove trailing stop words
+            kw = re.sub(r"\s+(in|at|near|around|please|here).*$", "", kw).strip()
+            if kw and len(kw) > 1:
+                return kw
+    return None
+
+
 def extract_rating(text: str) -> int | None:
     """
     Return a 1-5 star rating integer from text, or None.
@@ -311,7 +337,11 @@ def detect_intent(tokens: list[str], text: str) -> str:
     if token_set & _VIEW_VERB and token_set & _ITIN_NOUN:
         return "view_itinerary"
 
-    # ── Priority 5: destination ───────────────────────────────────────────
+    # ── Priority 5: suggest places ───────────────────────────────────────
+    if (token_set & _SUGGEST_V or token_set & _SUGGEST_CTX) and extract_place_keyword(text):
+        return "suggest_places"
+
+    # ── Priority 6: destination ───────────────────────────────────────────
     dest = extract_destination(text)
     if dest and (
         token_set & _DEST_VERB
@@ -408,12 +438,13 @@ def process_message(text: str, context: dict | None = None) -> dict:
     intent  = detect_intent(tokens, text)
 
     entities: dict = {
-        "destination":  None,
-        "days":         None,
-        "budget_type":  None,
-        "weather_pref": None,
-        "interests":    [],
-        "rating":       None,
+        "destination":   None,
+        "days":          None,
+        "budget_type":   None,
+        "weather_pref":  None,
+        "interests":     [],
+        "rating":        None,
+        "place_keyword": None,
     }
     updates: dict = {}
     reply         = ""
@@ -430,6 +461,16 @@ def process_message(text: str, context: dict | None = None) -> dict:
     # ── Help ──────────────────────────────────────────────────────────────
     elif intent == "help":
         reply = HELP_TEXT
+
+    # ── Suggest places (DB query handled in the Flask route) ─────────────
+    elif intent == "suggest_places":
+        kw   = extract_place_keyword(text)
+        dest = extract_destination(text)
+        entities["place_keyword"]  = kw
+        entities["destination"]    = dest
+        # Reply is filled in by the route after querying the DB.
+        # Set a fallback in case the route doesn't override it.
+        reply = f"Let me search for <strong>{kw}</strong> in our database…"
 
     # ── Destination update ────────────────────────────────────────────────
     elif intent == "update_destination":

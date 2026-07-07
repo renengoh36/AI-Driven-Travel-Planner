@@ -151,13 +151,18 @@ def proxy_photo():
     )
 
     try:
-        resp = http_requests.get(google_url, timeout=8, allow_redirects=True)
-        if resp.status_code != 200:
-            abort(404)
-        return Response(
-            resp.content,
-            content_type=resp.headers.get("Content-Type", "image/jpeg"),
-        )
+        # Google Places Photo returns a 302 redirect to the actual image CDN URL.
+        # Don't follow it — just grab the Location header and redirect the browser
+        # there directly, avoiding the proxy downloading the full image content.
+        resp = http_requests.get(google_url, timeout=8, allow_redirects=False)
+        if resp.status_code in (301, 302, 303, 307, 308):
+            return redirect(resp.headers["Location"])
+        if resp.status_code == 200:
+            return Response(
+                resp.content,
+                content_type=resp.headers.get("Content-Type", "image/jpeg"),
+            )
+        abort(404)
     except Exception:
         abort(502)
 

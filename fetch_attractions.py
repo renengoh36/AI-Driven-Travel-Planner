@@ -193,13 +193,26 @@ def cost_from_price_level(price_level) -> float:
 # MAIN PIPELINE
 # ----------------------------------------------------------------------
 
-def build_attraction_records(city_name: str, radius_m: int = 25000) -> list:
+def build_attraction_records(
+    city_name: str,
+    radius_m: int = 25000,
+    lat: float | None = None,
+    lon: float | None = None,
+    country: str | None = None,
+) -> list:
     """
     Full pipeline: city name → list of dicts matching the ATTRACTIONS schema,
     ready to insert into MySQL.
     Searches multiple place types and deduplicates by place_id.
+
+    If lat/lon are provided, the Geocoding API call is skipped entirely —
+    useful when coordinates are already known and Geocoding quota is limited.
     """
-    geo = geocode_city(city_name)
+    if lat is None or lon is None:
+        geo = geocode_city(city_name)
+        lat, lon, country = geo["lat"], geo["lon"], country or geo["country"]
+    else:
+        country = country or ""
 
     seen_ids = set()
     records = []
@@ -207,7 +220,7 @@ def build_attraction_records(city_name: str, radius_m: int = 25000) -> list:
 
     for place_type in SEARCH_TYPES:
         try:
-            places = nearby_search(geo["lat"], geo["lon"], place_type, radius_m)
+            places = nearby_search(lat, lon, place_type, radius_m)
         except RuntimeError as e:
             print(f"  Warning: {e}")
             continue
@@ -246,8 +259,8 @@ def build_attraction_records(city_name: str, radius_m: int = 25000) -> list:
 
             records.append({
                 "name": name,
-                "city": geo["city"],
-                "country": geo["country"],
+                "city": city_name,
+                "country": country,
                 "category": category,
                 "rating": round(float(rating), 1) if rating is not None else None,
                 "entry_cost": cost_from_price_level(price_level),

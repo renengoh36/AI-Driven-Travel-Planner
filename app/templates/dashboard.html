@@ -398,6 +398,8 @@ if (persona) {
 const _ts = sessionStorage.getItem('topbar_search');
 if (_ts) { sessionStorage.removeItem('topbar_search'); document.getElementById('destination').value = _ts; searchDestination(); }
 
+const G_KEY = "{{ google_api_key }}";
+
 // ── GRADIENTS ──
 const CAT_GRADS = {
     nature:     ['#064e3b','#065f46'],
@@ -588,14 +590,12 @@ function buildCard(r) {
     const g      = CAT_GRADS[r.category] || ['#1e293b','#334155'];
     const scoreW = Math.round((r.recommendation_score||0)*100);
 
-    const photoSrc = r.photo_reference
-        ? `/api/photo?ref=${encodeURIComponent(r.photo_reference)}&w=600`
-        : (r.photo_url || null);
-    const hasManualUrl = !r.photo_reference && !!r.photo_url;
+    // Use direct URL if available; otherwise show gradient (no proxy calls)
+    const photoSrc = (!r.photo_reference && r.photo_url) ? r.photo_url : null;
     const photoHtml = photoSrc
         ? `<img src="${photoSrc}" alt="${esc(r.name)}"
                onload="_onPhotoLoad(this)"
-               onerror="_onPhotoErr(this,${hasManualUrl})">`
+               onerror="_onPhotoErr(this, true)">`
         : `<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
                        background:linear-gradient(145deg,${g[0]},${g[1]});padding:2rem;text-align:center;">
                <div style="font-size:1.1rem;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.55);margin-bottom:.8rem;">${esc(cap(r.category))}</div>
@@ -609,8 +609,7 @@ function buildCard(r) {
 
     const card = document.createElement('div');
     card.className = 'att-card' + (sel ? ' selected' : '');
-    // hide only if has photo (onload reveals it); no-photo cards show immediately
-    if (r.photo_reference && !sel) card.style.opacity = '0';
+    // cards always visible; photo loads in place (or onerror shows gradient)
     card.dataset.id = r.attraction_id;
     card.innerHTML = `
         <div class="check-badge">✓</div>
@@ -643,8 +642,20 @@ function buildCard(r) {
 function _onPhotoLoad(img) { img.closest('.att-card').style.opacity = '1'; }
 function _onPhotoErr(img, hasManualUrl) {
     const card = img.closest('.att-card');
-    if (hasManualUrl) { card.style.opacity = '1'; } // show card even if manual URL also fails
-    else { card.remove(); }
+    const wrap = img.closest('.att-photo-wrap');
+    if (!card || !wrap) return;
+    const r = allRecs.find(x => x.attraction_id === parseInt(card.dataset.id)) || {};
+    const g = CAT_GRADS[r.category] || ['#1e293b','#334155'];
+    // Replace broken image with gradient fallback
+    wrap.innerHTML = `<div style="width:100%;height:100%;display:flex;flex-direction:column;
+        align-items:center;justify-content:center;background:linear-gradient(145deg,${g[0]},${g[1]});
+        padding:2rem;text-align:center;">
+        <div style="font-size:1.1rem;font-weight:800;text-transform:uppercase;letter-spacing:.14em;
+            color:rgba(255,255,255,.55);margin-bottom:.8rem;">${r.category||''}</div>
+        <div style="font-size:1.9rem;font-weight:900;color:#fff;line-height:1.25;">${r.name||''}</div>
+        <div style="font-size:1.25rem;color:rgba(255,255,255,.55);margin-top:.5rem;">${r.city||''}</div>
+    </div>`;
+    card.style.opacity = '1';
 }
 
 // ── SELECTION ──

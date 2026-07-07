@@ -25,6 +25,7 @@ def generate_itinerary():
     destination = data.get("destination", "").strip()
     attraction_ids = data.get("attraction_ids", [])
     travel_days = data.get("travel_days", 1)
+    total_budget = data.get("total_budget")  # optional user-declared budget limit
 
     if not user_id or not destination or not attraction_ids or not travel_days:
         return jsonify({
@@ -44,11 +45,16 @@ def generate_itinerary():
     # Build optimised items using Module 4
     items_data = build_itinerary_items(attraction_dicts, travel_days)
 
+    # Budget estimation: sum entry costs of all selected attractions
+    actual_cost = sum(a.entry_cost or 0.0 for a in attractions)
+
     # Persist itinerary
     itinerary = Itinerary(
         user_id=user_id,
         destination=destination,
         travel_days=travel_days,
+        total_budget=float(total_budget) if total_budget is not None else None,
+        actual_cost=actual_cost,
     )
     db.session.add(itinerary)
     db.session.flush()  # get itinerary_id before committing
@@ -98,6 +104,8 @@ def generate_itinerary():
         "itinerary_id": itinerary.itinerary_id,
         "destination": destination,
         "travel_days": travel_days,
+        "total_budget": itinerary.total_budget,
+        "actual_cost": itinerary.actual_cost,
         "items": result_items,
     }), 201
 
@@ -136,6 +144,13 @@ def get_my_itineraries():
             itinerary_id=itin.itinerary_id, user_id=int(user_id)
         ).first()
 
+        # Fallback: sum entry costs from items if actual_cost was never stored
+        if itin.actual_cost is None:
+            itin.actual_cost = sum(
+                (att_map.get(aid) or {}).get("entry_cost") or 0.0
+                for aid in att_ids
+            )
+
         result.append({
             "itinerary_id": itin.itinerary_id,
             "destination":  itin.destination,
@@ -143,6 +158,8 @@ def get_my_itineraries():
             "created_at":   itin.created_at.isoformat() if itin.created_at else None,
             "days":         [{"day": d, "items": items} for d, items in days.items()],
             "total_attractions": len(att_ids),
+            "actual_cost":  itin.actual_cost,
+            "total_budget": itin.total_budget,
             "rating": rating_row.to_dict() if rating_row else None,
         })
 
@@ -285,6 +302,11 @@ def dislike_attraction(itinerary_id):
                 start_time=r["start_time"],
                 end_time=r["end_time"],
             ))
+
+    # Recalculate actual_cost after swap
+    all_att_ids = [item.attraction_id for item in itinerary.items]
+    all_atts = Attraction.query.filter(Attraction.attraction_id.in_(all_att_ids)).all()
+    itinerary.actual_cost = sum(a.entry_cost or 0.0 for a in all_atts)
 
     db.session.commit()
 

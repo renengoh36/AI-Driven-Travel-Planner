@@ -425,6 +425,11 @@ function applyFilters() {
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function cap(s) { return s ? s.charAt(0).toUpperCase()+s.slice(1) : ''; }
 
+function catColor(cat) {
+    const m = { nature:'#064e3b,#065f46', food:'#78350f,#92400e', history:'#1e3a5f,#1e40af', shopping:'#4a044e,#701a75', adventure:'#450a0a,#7f1d1d', relaxation:'#1e1b4b,#3730a3' };
+    return m[cat] || '#1e293b,#334155';
+}
+
 function _onPhotoLoad(img) { img.closest('.att-card').style.opacity = '1'; }
 function _onPhotoErr(img, hasManualUrl) {
     const card = img.closest('.att-card');

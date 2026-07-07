@@ -348,7 +348,7 @@
             </svg>
             <h3>No trips yet</h3>
             <p>Generate your first itinerary to see it here.</p>
-            <a href="/itinerary" style="display:inline-block;padding:1.2rem 2.4rem;background:var(--pengo-blue);color:#fff;border-radius:0.8rem;font-weight:700;font-size:1.5rem;text-decoration:none;">Plan a Trip</a>
+            <a href="/dashboard" style="display:inline-block;padding:1.2rem 2.4rem;background:var(--pengo-blue);color:#fff;border-radius:0.8rem;font-weight:700;font-size:1.5rem;text-decoration:none;">Plan a Trip</a>
         </div>
 
         <div id="tripsList" class="trips-grid" style="display:none;"></div>
@@ -452,6 +452,10 @@ function buildCard(trip) {
                     <span class="trip-meta-item">
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
                         ${trip.total_attractions} attraction${trip.total_attractions !== 1 ? 's' : ''}
+                    </span>
+                    <span class="trip-meta-item">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        ${trip.actual_cost != null ? 'RM ' + parseFloat(trip.actual_cost).toFixed(2) + ' est. cost' : 'Cost N/A'}
                     </span>
                     ${ratingChip}
                 </div>

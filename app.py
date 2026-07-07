@@ -68,4 +68,4 @@ if __name__ == "__main__":
         db.create_all()
         ensure_schema()
         print("Database tables created.")
-    flask_app.run(debug=True, port=5000)
+    flask_app.run(debug=True, port=5000, threaded=True)
