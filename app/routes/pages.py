@@ -25,7 +25,12 @@ def onboarding():
 
 @pages_bp.route("/dashboard")
 def dashboard():
-    return render_template("dashboard.html", body_class="app-page")
+    from flask import current_app
+    return render_template(
+        "dashboard.html",
+        body_class="app-page",
+        google_api_key=current_app.config.get("GOOGLE_API_KEY", ""),
+    )
 
 
 @pages_bp.route("/recommendations")
