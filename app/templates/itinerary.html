@@ -218,7 +218,7 @@ function renderItinerary(itin) {
     document.getElementById('summary-grid').innerHTML = `
         <div class="summary-stat"><div class="val">${items.length}</div><div class="lbl">Attractions</div></div>
         <div class="summary-stat"><div class="val">${days}</div><div class="lbl">Days</div></div>
-        <div class="summary-stat"><div class="val">$${totalCost.toFixed(0)}</div><div class="lbl">Est. Entry Cost</div></div>
+        <div class="summary-stat"><div class="val">RM${totalCost.toFixed(0)}</div><div class="lbl">Est. Entry Cost</div></div>
         <div class="summary-stat"><div class="val">${avgRating.toFixed(1)}</div><div class="lbl">Avg. Rating</div></div>
     `;
 
@@ -242,7 +242,7 @@ function renderItinerary(itin) {
             const att = item.attraction || {};
             const icon = CATEGORY_ICONS[att.category] || '📍';
             const rating = att.rating ? `⭐ ${att.rating.toFixed(1)}` : '';
-            const cost = att.entry_cost ? `💵 $${att.entry_cost.toFixed(0)} entry` : '💵 Free entry';
+            const cost = att.entry_cost ? `💵 RM${att.entry_cost.toFixed(0)} entry` : '💵 Free entry';
             return `
                 <div class="timeline-item">
                     <div class="timeline-dot"></div>
