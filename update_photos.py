@@ -8,9 +8,14 @@ Usage (from project root, with Flask server stopped):
 """
 
 import os
+import sys
 import time
 import requests
 from dotenv import load_dotenv
+
+# Force UTF-8 output on Windows
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 load_dotenv()
 
@@ -43,7 +48,7 @@ def get_photo_reference(name: str, city: str) -> str | None:
 
 def main():
     if not GOOGLE_API_KEY or "your_google" in GOOGLE_API_KEY:
-        print("❌  GOOGLE_API_KEY not set in .env — aborting.")
+        print("GOOGLE_API_KEY not set in .env -- aborting.")
         return
 
     # Import app inside main so dotenv is loaded first
@@ -61,17 +66,17 @@ def main():
         updated = 0
         failed  = 0
 
-        print(f"\n🔍  Found {total} attractions without photos. Fetching from Google...\n")
+        print(f"\nFound {total} attractions without photos. Fetching from Google...\n")
 
         for i, att in enumerate(attractions, 1):
             ref = get_photo_reference(att.name, att.city or "")
             if ref:
                 att.photo_reference = ref
                 updated += 1
-                print(f"  [{i}/{total}] ✅  {att.name} ({att.city})")
+                print(f"  [{i}/{total}] OK  {att.name} ({att.city})")
             else:
                 failed += 1
-                print(f"  [{i}/{total}] ❌  {att.name} ({att.city}) — no photo found")
+                print(f"  [{i}/{total}] --  {att.name} ({att.city}) - no photo found")
 
             # Commit every 10 rows so progress is saved even if script is interrupted
             if i % 10 == 0:
@@ -81,7 +86,7 @@ def main():
             time.sleep(0.2)
 
         db.session.commit()
-        print(f"\n✅  Done — {updated} updated, {failed} not found.\n")
+        print(f"\nDone -- {updated} updated, {failed} not found.\n")
         print("Restart Flask and refresh the website to see real photos.")
 
 
