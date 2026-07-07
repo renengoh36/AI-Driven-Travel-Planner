@@ -194,6 +194,9 @@ async function savePreferences() {
         }
 
         localStorage.setItem('budget_type', budget_type);
+        // Clear recommendation cache so dashboard re-fetches with new persona
+        sessionStorage.removeItem('persona_recs_v3');
+        sessionStorage.removeItem('persona_recs_ts_v3');
         if (data.profile?.persona_label) {
             localStorage.setItem('persona', data.profile.persona_label);
             document.getElementById('acctPersona').textContent = data.profile.persona_label;

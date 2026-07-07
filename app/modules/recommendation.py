@@ -79,11 +79,6 @@ def encode_attraction(attraction: dict) -> np.ndarray:
 
 
 def get_feedback_score(attraction_id: int, persona_label: str, db_session) -> float:
-    """
-    Average itinerary rating from same-persona users whose itinerary included
-    this attraction. Returns 0.5 (neutral) when no data exists (cold-start).
-    Normalised from 1-5 scale to [0, 1].
-    """
     from app.models import ItineraryRating, ItineraryItem, UserProfile
 
     rows = (

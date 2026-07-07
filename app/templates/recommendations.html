@@ -374,7 +374,7 @@ function buildTrending() {
                 <h4 title="${r.name}">${r.name}</h4>
                 <div class="tc-meta">
                     <span>${r.rating ? '⭐ '+r.rating.toFixed(1) : 'No rating'}</span>
-                    <span>${r.entry_cost ? '$'+r.entry_cost.toFixed(0) : 'Free'}</span>
+                    <span>${r.entry_cost ? 'RM'+r.entry_cost.toFixed(0) : 'Free'}</span>
                 </div>
             </div>`;
         card.addEventListener('click', () => toggleById(r.attraction_id, card));
