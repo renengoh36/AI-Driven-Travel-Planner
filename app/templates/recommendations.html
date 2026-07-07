@@ -430,28 +430,15 @@ function catColor(cat) {
     return m[cat] || '#1e293b,#334155';
 }
 
-function _onPhotoLoad(img) { img.closest('.att-card').style.opacity = '1'; }
-function _onPhotoErr(img, hasManualUrl) {
-    const card = img.closest('.att-card');
-    card.style.opacity = '1';
-    const wrap = img.closest('.att-photo-wrap');
-    if (wrap) {
-        const CAT_GRADS = {
-            nature:['#064e3b','#065f46'], food:['#78350f','#92400e'],
-            history:['#1e3a5f','#1e40af'], shopping:['#4a044e','#701a75'],
-            adventure:['#450a0a','#7f1d1d'], relaxation:['#1e1b4b','#3730a3'],
-        };
-        const name = card.querySelector('.att-name')?.textContent || '';
-        const cat  = card.dataset.category || '';
-        const city = card.querySelector('.att-city')?.textContent || '';
-        const g = CAT_GRADS[cat] || ['#1e293b','#334155'];
-        wrap.innerHTML = `<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;
-            justify-content:center;background:linear-gradient(145deg,${g[0]},${g[1]});padding:2rem;text-align:center;">
-            <div style="font-size:1rem;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.55);margin-bottom:.8rem;">${cat}</div>
-            <div style="font-size:1.5rem;font-weight:900;color:#fff;line-height:1.25;">${name}</div>
-            <div style="font-size:1.1rem;color:rgba(255,255,255,.55);margin-top:.5rem;">${city}</div>
-        </div>`;
-    }
+function _onPhotoLoad(img) {
+    const card = img ? img.closest('.att-card') : null;
+    if (card) card.style.opacity = '1';
+}
+function _onPhotoErr(img) {
+    const card = img ? img.closest('.att-card') : null;
+    const wrap = img ? img.closest('.att-photo-wrap') : null;
+    if (card) card.style.opacity = '1';
+    if (img) img.style.display = 'none'; // hide broken img; gradient shows through
 }
 
 function starsHTML(rating) {
@@ -466,28 +453,29 @@ function buildCard(r) {
     const photoSrc = r.photo_reference
         ? `/api/photo?ref=${encodeURIComponent(r.photo_reference)}&w=600`
         : (r.photo_url || null);
-    const hasManualUrl = !r.photo_reference && !!r.photo_url;
     const CAT_GRADS = {
         nature:     ['#064e3b','#065f46'], food:       ['#78350f','#92400e'],
         history:    ['#1e3a5f','#1e40af'], shopping:   ['#4a044e','#701a75'],
         adventure:  ['#450a0a','#7f1d1d'], relaxation: ['#1e1b4b','#3730a3'],
     };
     const g = CAT_GRADS[r.category] || ['#1e293b','#334155'];
-    const photoHtml = photoSrc
-        ? `<img src="${photoSrc}" alt="${esc(r.name)}"
-               onload="_onPhotoLoad(this)"
-               onerror="_onPhotoErr(this,${hasManualUrl})">`
-        : `<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;
+    // Always show gradient; photo loads on top if available
+    const gradDiv = `<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
                        justify-content:center;background:linear-gradient(145deg,${g[0]},${g[1]});
                        padding:2rem;text-align:center;">
                <div style="font-size:1.1rem;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.55);margin-bottom:.8rem;">${esc(cap(r.category))}</div>
                <div style="font-size:1.7rem;font-weight:900;color:#fff;line-height:1.25;">${esc(r.name)}</div>
                <div style="font-size:1.2rem;color:rgba(255,255,255,.55);margin-top:.5rem;">${esc(r.city||'')}</div>
            </div>`;
+    const imgTag = photoSrc
+        ? `<img src="${photoSrc}" alt="${esc(r.name)}" loading="lazy"
+               style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"
+               onload="_onPhotoLoad(this)" onerror="_onPhotoErr(this)">`
+        : '';
+    const photoHtml = `<div style="position:relative;width:100%;height:100%;">${gradDiv}${imgTag}</div>`;
 
     const card = document.createElement('div');
     card.className = 'att-card' + (sel ? ' selected' : '');
-    if (photoSrc && !sel) card.style.opacity = '0';
     card.dataset.id = r.attraction_id;
     card.dataset.category = r.category || '';
     card.innerHTML = `
