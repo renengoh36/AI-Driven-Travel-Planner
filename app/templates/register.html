@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}Create Account — Pengo{% endblock %}
+
+{% block header %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block head %}
+<style>
+* { box-sizing: border-box; }
+.auth-split { display: flex; min-height: 100vh; }
+
+/* ── LEFT PANEL (image) ── */
+.auth-img-side {
+    flex: 0 0 48%;
+    background-color: #0f2027;
+    background-image: url("{{ url_for('static', filename='images/register-bg.jpg') }}");
+    background-size: cover; background-position: center;
+    position: relative; display: flex; align-items: flex-end;
+}
+.auth-img-side::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,.80) 0%, rgba(0,0,0,.15) 55%, transparent 100%);
+}
+.auth-img-content { position: relative; z-index: 1; padding: 4.8rem; }
+.auth-img-logo { font-size: 5.6rem; font-weight: 900; color: #fff; line-height: 1; margin-bottom: 1.2rem; }
+.auth-img-logo span { color: #f59e0b; }
+.auth-img-tagline { font-size: 2rem; color: rgba(255,255,255,.8); line-height: 1.5; max-width: 36rem; margin-bottom: 2.8rem; }
+.auth-step { display: flex; align-items: center; gap: 1.4rem; margin-bottom: 1.4rem; }
+.auth-step-dot { width: 3.2rem; height: 3.2rem; border-radius: 50%; background: rgba(255,255,255,.15); border: 2px solid rgba(255,255,255,.4); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+.auth-step-text { font-size: 1.5rem; color: rgba(255,255,255,.8); }
+
+/* ── RIGHT PANEL (form) ── */
+.auth-form-side {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center;
+    background: #fff; padding: 4rem 2rem;
+    overflow-y: auto;
+}
+.auth-form-box { width: 100%; max-width: 44rem; }
+.auth-form-logo { display: flex; align-items: center; gap: 1.2rem; margin-bottom: 3.2rem; text-decoration: none; }
+.auth-form-logo .logo-text { font-size: 2.8rem; font-weight: 900; color: #2563eb; }
+.auth-form-logo .logo-text span { color: #f59e0b; }
+.auth-form-logo .logo-badge { background: #eff6ff; color: #2563eb; font-size: 1.15rem; font-weight: 700; padding: .3rem 1rem; border-radius: 2rem; }
+h2.auth-title { font-size: 3rem; font-weight: 900; color: #0f172a; margin-bottom: .6rem; letter-spacing: -.02em; }
+p.auth-sub { font-size: 1.6rem; color: #64748b; margin-bottom: 3.2rem; }
+
+.form-field { margin-bottom: 1.8rem; }
+.form-field label { display: block; font-size: 1.4rem; font-weight: 600; color: #374151; margin-bottom: .6rem; }
+.form-field input {
+    width: 100%; padding: 1.3rem 1.6rem;
+    border: 2px solid #e2e8f0; border-radius: .8rem;
+    font-size: 1.6rem; outline: none; transition: border-color .2s, box-shadow .2s;
+    background: #f8fafc;
+}
+.form-field input:focus { border-color: #2563eb; background: #fff; box-shadow: 0 0 0 4px rgba(37,99,235,.08); }
+.btn-auth {
+    width: 100%; padding: 1.5rem; border-radius: .8rem;
+    background: #2563eb; color: #fff; border: none;
+    font-size: 1.7rem; font-weight: 700; cursor: pointer;
+    transition: opacity .2s, transform .15s; margin-top: .4rem;
+}
+.btn-auth:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
+.btn-auth:disabled { opacity: .6; cursor: not-allowed; }
+.auth-terms { font-size: 1.3rem; color: #94a3b8; text-align: center; margin-top: 1.4rem; }
+.auth-terms a { color: #64748b; }
+.auth-divider { display: flex; align-items: center; gap: 1.2rem; margin: 2rem 0; }
+.auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
+.auth-divider span { font-size: 1.3rem; color: #94a3b8; }
+.auth-switch { text-align: center; font-size: 1.5rem; color: #64748b; }
+.auth-switch a { color: #2563eb; font-weight: 700; text-decoration: none; }
+.auth-switch a:hover { text-decoration: underline; }
+.alert-box.error.show { display: block; background: #fef2f2; border: 1.5px solid #fecaca; color: #dc2626; padding: 1.2rem 1.4rem; border-radius: .6rem; font-size: 1.4rem; margin-bottom: 1.6rem; }
+.alert-box { display: none; }
+.spinner { width: 1.6rem; height: 1.6rem; border: 2.5px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; display: inline-block; vertical-align: middle; margin-right: .8rem; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 768px) {
+    .auth-img-side { display: none; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-split">
+    <!-- Left: image -->
+    <div class="auth-img-side">
+        <div class="auth-img-content">
+            <div class="auth-img-logo">Pen<span>go</span></div>
+            <div class="auth-img-tagline">Your personalised trip, ready in minutes.</div>
+            <div class="auth-step"><div class="auth-step-dot">1</div><div class="auth-step-text">Create your free account</div></div>
+            <div class="auth-step"><div class="auth-step-dot">2</div><div class="auth-step-text">Tell us your travel style</div></div>
+            <div class="auth-step"><div class="auth-step-dot">3</div><div class="auth-step-text">Search any city and explore</div></div>
+            <div class="auth-step"><div class="auth-step-dot">4</div><div class="auth-step-text">Get your day-by-day itinerary</div></div>
+        </div>
+    </div>
+
+    <!-- Right: form -->
+    <div class="auth-form-side">
+        <div class="auth-form-box">
+            <a href="/" class="auth-form-logo">
+                <div class="logo-text">Pen<span>go</span></div>
+                <div class="logo-badge">Travel Planner</div>
+            </a>
+            <h2 class="auth-title">Create your account</h2>
+            <p class="auth-sub">Start planning smarter trips today — free forever.</p>
+
+            <div id="alert" class="alert-box error"></div>
+
+            <form id="registerForm">
+                <div class="form-field">
+                    <label for="full_name">Full Name</label>
+                    <input type="text" id="full_name" placeholder="e.g. Sarah Tan" required autocomplete="name">
+                </div>
+                <div class="form-field">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" placeholder="you@email.com" required autocomplete="email">
+                </div>
+                <div class="form-field">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="At least 8 characters" required minlength="8" autocomplete="new-password">
+                </div>
+                <div class="form-field">
+                    <label for="confirm_password">Confirm Password</label>
+                    <input type="password" id="confirm_password" placeholder="Repeat your password" required autocomplete="new-password">
+                </div>
+                <button type="submit" class="btn-auth" id="submitBtn">Create Account →</button>
+            </form>
+
+            <div class="auth-terms">By signing up you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.</div>
+            <div class="auth-divider"><span>already have an account?</span></div>
+            <div class="auth-switch"><a href="/login">Log in instead →</a></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* If already logged in, skip straight to dashboard */
+if (localStorage.getItem('user_id')) window.location.replace('/dashboard');
+
+document.getElementById('registerForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const alertEl = document.getElementById('alert');
+    const btn = document.getElementById('submitBtn');
+    const full_name = document.getElementById('full_name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const confirm = document.getElementById('confirm_password').value;
+
+    alertEl.className = 'alert-box';
+    if (password !== confirm) {
+        alertEl.className = 'alert-box error show';
+        alertEl.textContent = 'Passwords do not match.'; return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Creating account...';
+
+    try {
+        const res = await fetch('/api/users/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ full_name, email, password })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            alertEl.className = 'alert-box error show';
+            alertEl.textContent = data.error || 'Registration failed. Please try again.';
+            btn.disabled = false; btn.textContent = 'Create Account →'; return;
+        }
+        localStorage.setItem('user_id', data.user_id);
+        localStorage.setItem('user_name', full_name);
+        window.location.href = '/onboarding';
+    } catch (err) {
+        alertEl.className = 'alert-box error show';
+        alertEl.textContent = 'Network error — is the server running?';
+        btn.disabled = false; btn.textContent = 'Create Account →';
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,22 @@
+# Web framework
+flask==3.0.3
+flask-sqlalchemy==3.1.1
+flask-cors==4.0.1
+
+# Database
+pymysql==1.1.1
+cryptography==43.0.3
+
+# Auth
+bcrypt==4.3.0
+
+# ML / data (versions with Python 3.13 pre-built wheels)
+scikit-learn==1.6.1
+pandas==2.2.3
+numpy==2.1.3
+
+# HTTP (for OpenTripMap API)
+requests==2.32.3
+
+# Environment variables
+python-dotenv==1.0.1

@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+{% block title %}Your Travel Profile — Pengo{% endblock %}
+
+{% block header %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block head %}
+<style>
+    .onboard-wrap {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #eff6ff 0%, #fefce8 100%);
+        padding: 5rem 2rem;
+        display: flex; align-items: flex-start; justify-content: center;
+    }
+    .onboard-card {
+        background: #fff;
+        border-radius: 1.6rem;
+        box-shadow: 0 8px 40px rgba(37,99,235,0.12);
+        padding: 4.8rem 4rem;
+        width: 100%;
+        max-width: 64rem;
+    }
+    .onboard-card h2 { font-size: 3rem; font-weight: 800; color: #1e293b; margin-bottom: 0.4rem; }
+    .onboard-card .subtitle { color: #64748b; font-size: 1.6rem; margin-bottom: 4rem; }
+    .step-indicator {
+        display: flex; gap: 0.8rem; margin-bottom: 4rem;
+    }
+    .step-dot {
+        height: 0.6rem; flex: 1; border-radius: 1rem;
+        background: #e2e8f0; transition: background 0.3s;
+    }
+    .step-dot.active { background: #2563eb; }
+    .step-dot.done { background: #86efac; }
+
+    /* Step sections */
+    .step-section { display: none; }
+    .step-section.active { display: block; }
+    .step-section h3 {
+        font-size: 2rem; font-weight: 700; color: #0f172a; margin-bottom: 0.6rem;
+    }
+    .step-section .hint { font-size: 1.45rem; color: #64748b; margin-bottom: 2.8rem; }
+
+    /* Choice cards */
+    .choice-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; margin-bottom: 3.2rem; }
+    .choice-grid.two-col { grid-template-columns: repeat(2, 1fr); }
+    .choice-grid.three-col { grid-template-columns: repeat(3, 1fr); }
+    .choice-card {
+        border: 2px solid #e2e8f0;
+        border-radius: 1.2rem;
+        padding: 1.8rem 1.2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        user-select: none;
+    }
+    .choice-card:hover { border-color: #93c5fd; background: #eff6ff; }
+    .choice-card.selected { border-color: #2563eb; background: #eff6ff; }
+    .choice-card.selected .choice-label { color: #2563eb; font-weight: 700; }
+    .choice-icon { font-size: 3.2rem; display: block; margin-bottom: 0.8rem; }
+    .choice-label { font-size: 1.45rem; font-weight: 600; color: #374151; }
+    .choice-desc { font-size: 1.2rem; color: #94a3b8; margin-top: 0.3rem; }
+
+    .nav-btns { display: flex; gap: 1.2rem; }
+    .btn-back {
+        flex: 1; padding: 1.4rem;
+        border: 2px solid #e2e8f0;
+        background: #fff; color: #374151;
+        border-radius: 0.8rem; font-size: 1.6rem;
+        font-weight: 600; cursor: pointer; transition: border-color 0.2s;
+    }
+    .btn-back:hover { border-color: #94a3b8; }
+    .btn-next {
+        flex: 2; padding: 1.4rem;
+        background: #2563eb; color: #fff;
+        border: none; border-radius: 0.8rem;
+        font-size: 1.6rem; font-weight: 700;
+        cursor: pointer; transition: opacity 0.2s;
+    }
+    .btn-next:hover { opacity: 0.9; }
+    .btn-next:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Persona reveal */
+    .persona-reveal {
+        text-align: center; padding: 2rem 0;
+    }
+    .persona-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, #2563eb, #7c3aed);
+        color: #fff; font-size: 2rem; font-weight: 800;
+        padding: 1.2rem 3.2rem;
+        border-radius: 4rem; margin: 2rem 0;
+    }
+    .persona-reveal p { font-size: 1.6rem; color: #64748b; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="onboard-wrap">
+    <div class="onboard-card">
+        <a href="/" style="font-size:2.2rem;font-weight:800;color:#2563eb;text-decoration:none;">
+            Pen<span style="color:#f59e0b;">go</span>
+        </a>
+        <div style="height:2.4rem;"></div>
+        <h2>Set up your travel profile</h2>
+        <p class="subtitle">We'll use this to personalise your recommendations. Takes 30 seconds.</p>
+
+        <div class="step-indicator">
+            <div class="step-dot active" id="dot-0"></div>
+            <div class="step-dot" id="dot-1"></div>
+            <div class="step-dot" id="dot-2"></div>
+        </div>
+
+        <div id="alert" class="alert-box error"></div>
+
+        <!-- Step 1: Budget -->
+        <div class="step-section active" id="step-0">
+            <h3>What's your travel budget style?</h3>
+            <p class="hint">Choose the option that best describes your typical spending.</p>
+            <div class="choice-grid three-col" id="budget-grid">
+                <div class="choice-card" data-value="budget">
+                    <span class="choice-icon">🎒</span>
+                    <span class="choice-label">Budget</span>
+                    <span class="choice-desc">Keep costs low, maximise experiences</span>
+                </div>
+                <div class="choice-card" data-value="mid-range">
+                    <span class="choice-icon">✈️</span>
+                    <span class="choice-label">Mid-Range</span>
+                    <span class="choice-desc">Comfortable travel, reasonable spend</span>
+                </div>
+                <div class="choice-card" data-value="luxury">
+                    <span class="choice-icon">💎</span>
+                    <span class="choice-label">Luxury</span>
+                    <span class="choice-desc">Premium experiences, no compromise</span>
+                </div>
+            </div>
+            <div class="nav-btns">
+                <button class="btn-next" id="next-0" onclick="goStep(1)" disabled>Continue →</button>
+            </div>
+        </div>
+
+        <!-- Step 2: Climate -->
+        <div class="step-section" id="step-1">
+            <h3>Preferred travel climate?</h3>
+            <p class="hint">What weather makes you happiest when travelling?</p>
+            <div class="choice-grid three-col" id="weather-grid">
+                <div class="choice-card" data-value="warm">
+                    <span class="choice-icon">☀️</span>
+                    <span class="choice-label">Warm</span>
+                    <span class="choice-desc">Beaches, sunshine, tropical vibes</span>
+                </div>
+                <div class="choice-card" data-value="cold">
+                    <span class="choice-icon">❄️</span>
+                    <span class="choice-label">Cold</span>
+                    <span class="choice-desc">Snow, cosy cabins, winter wonderlands</span>
+                </div>
+                <div class="choice-card" data-value="moderate">
+                    <span class="choice-icon">🌤️</span>
+                    <span class="choice-label">Moderate</span>
+                    <span class="choice-desc">Mild weather, comfortable all day</span>
+                </div>
+            </div>
+            <div class="nav-btns">
+                <button class="btn-back" onclick="goStep(0)">← Back</button>
+                <button class="btn-next" id="next-1" onclick="goStep(2)" disabled>Continue →</button>
+            </div>
+        </div>
+
+        <!-- Step 3: Interests -->
+        <div class="step-section" id="step-2">
+            <h3>What do you love to do when travelling?</h3>
+            <p class="hint">Pick all that apply — the more you choose, the better we know you.</p>
+            <div class="choice-grid three-col" id="interest-grid">
+                <div class="choice-card" data-value="nature">
+                    <span class="choice-icon">🌿</span>
+                    <span class="choice-label">Nature</span>
+                    <span class="choice-desc">Parks, hikes, outdoors</span>
+                </div>
+                <div class="choice-card" data-value="food">
+                    <span class="choice-icon">🍜</span>
+                    <span class="choice-label">Food</span>
+                    <span class="choice-desc">Local cuisine, restaurants</span>
+                </div>
+                <div class="choice-card" data-value="history">
+                    <span class="choice-icon">🏛️</span>
+                    <span class="choice-label">History</span>
+                    <span class="choice-desc">Museums, heritage sites</span>
+                </div>
+                <div class="choice-card" data-value="shopping">
+                    <span class="choice-icon">🛍️</span>
+                    <span class="choice-label">Shopping</span>
+                    <span class="choice-desc">Markets, malls, souvenirs</span>
+                </div>
+                <div class="choice-card" data-value="adventure">
+                    <span class="choice-icon">🧗</span>
+                    <span class="choice-label">Adventure</span>
+                    <span class="choice-desc">Thrills, activities, adrenaline</span>
+                </div>
+                <div class="choice-card" data-value="relaxation">
+                    <span class="choice-icon">🧘</span>
+                    <span class="choice-label">Relaxation</span>
+                    <span class="choice-desc">Spas, slow travel, peaceful spots</span>
+                </div>
+            </div>
+            <div class="nav-btns">
+                <button class="btn-back" onclick="goStep(1)">← Back</button>
+                <button class="btn-next" id="next-2" onclick="submitProfile()" disabled>Find My Persona →</button>
+            </div>
+        </div>
+
+        <!-- Persona result (hidden until API returns) -->
+        <div class="step-section" id="step-result">
+            <div class="persona-reveal">
+                <div style="font-size:6rem;">🎉</div>
+                <h3 style="font-size:2.4rem;margin-top:1.6rem;">Your travel persona is...</h3>
+                <div class="persona-badge" id="persona-name">Loading...</div>
+                <p id="persona-desc">We've built your profile. Recommendations are now personalised for you.</p>
+                <div style="margin-top:3.2rem;">
+                    <a href="/dashboard" class="btn-next" style="display:inline-block;padding:1.4rem 4rem;text-decoration:none;border-radius:0.8rem;">
+                        Start Exploring →
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const selections = { budget: null, weather: null, interests: [] };
+
+// Generic single-select card handler
+function setupSingleSelect(gridId, key, nextBtnId) {
+    document.getElementById(gridId).querySelectorAll('.choice-card').forEach(card => {
+        card.addEventListener('click', function() {
+            document.getElementById(gridId).querySelectorAll('.choice-card').forEach(c => c.classList.remove('selected'));
+            this.classList.add('selected');
+            selections[key] = this.dataset.value;
+            document.getElementById(nextBtnId).disabled = false;
+        });
+    });
+}
+
+// Multi-select for interests
+document.getElementById('interest-grid').querySelectorAll('.choice-card').forEach(card => {
+    card.addEventListener('click', function() {
+        this.classList.toggle('selected');
+        const val = this.dataset.value;
+        if (selections.interests.includes(val)) {
+            selections.interests = selections.interests.filter(v => v !== val);
+        } else {
+            selections.interests.push(val);
+        }
+        document.getElementById('next-2').disabled = selections.interests.length === 0;
+    });
+});
+
+setupSingleSelect('budget-grid', 'budget', 'next-0');
+setupSingleSelect('weather-grid', 'weather', 'next-1');
+
+function goStep(n) {
+    document.querySelectorAll('.step-section').forEach(s => s.classList.remove('active'));
+    document.getElementById('step-' + n).classList.add('active');
+    document.querySelectorAll('.step-dot').forEach((d, i) => {
+        d.classList.remove('active', 'done');
+        if (i < n) d.classList.add('done');
+        else if (i === n) d.classList.add('active');
+    });
+}
+
+async function submitProfile() {
+    const alert = document.getElementById('alert');
+    const userId = localStorage.getItem('user_id');
+    const btn = document.getElementById('next-2');
+
+    if (!userId) {
+        window.location.href = '/register';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Analysing your profile...';
+
+    try {
+        const res = await fetch('/api/users/onboarding', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: parseInt(userId),
+                budget_type: selections.budget,
+                weather_pref: selections.weather,
+                interests: selections.interests
+            })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            alert.className = 'alert-box error show';
+            alert.textContent = data.error || 'Something went wrong. Please try again.';
+            btn.disabled = false;
+            btn.textContent = 'Find My Persona →';
+            return;
+        }
+
+        localStorage.setItem('persona', data.persona_label);
+        localStorage.setItem('budget_type', selections.budget);
+
+        document.getElementById('persona-name').textContent = data.persona_label;
+        document.querySelectorAll('.step-section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.step-dot').forEach(d => d.classList.add('done'));
+        document.getElementById('step-result').classList.add('active');
+
+    } catch (err) {
+        alert.className = 'alert-box error show';
+        alert.textContent = 'Network error. Is the server running?';
+        btn.disabled = false;
+        btn.textContent = 'Find My Persona →';
+    }
+}
+</script>
+{% endblock %}

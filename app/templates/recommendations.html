@@ -1,0 +1,610 @@
+{% extends "base.html" %}
+{% block title %}Explore — Pengo{% endblock %}
+
+{% block head %}
+<style>
+body.app-page { padding-top: 6rem; }
+
+/* ── PAGE HEADER ── */
+.exp-header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+    padding: 4rem 0 5.6rem;
+    color: #fff;
+}
+.exp-header-inner { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 2rem; }
+.exp-header h1 { font-size: 3.2rem; font-weight: 900; margin-bottom: .4rem; }
+.exp-header .dest-sub { font-size: 1.6rem; color: #94a3b8; }
+.exp-chips { display: flex; gap: .8rem; flex-wrap: wrap; margin-top: 1.2rem; }
+.exp-chip {
+    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+    color: #e2e8f0; font-size: 1.3rem; padding: .4rem 1.2rem; border-radius: 2rem;
+}
+
+/* ── FILTER BAR (sticky) ── */
+.filter-strip {
+    background: #fff; border-bottom: 1px solid #e2e8f0;
+    position: sticky; top: 6rem; z-index: 90;
+    padding: 1.4rem 0;
+}
+.filter-inner { display: flex; align-items: center; gap: 1.2rem; flex-wrap: wrap; }
+.filter-group { display: flex; align-items: center; gap: .6rem; }
+.filter-label { font-size: 1.3rem; font-weight: 700; color: #374151; white-space: nowrap; }
+.filter-pills { display: flex; gap: .5rem; flex-wrap: wrap; }
+.f-pill {
+    padding: .6rem 1.4rem; border: 2px solid #e2e8f0;
+    border-radius: 4rem; font-size: 1.3rem; font-weight: 600;
+    cursor: pointer; background: #fff; color: #64748b; transition: all .15s; white-space: nowrap;
+}
+.f-pill:hover { border-color: #93c5fd; color: var(--pengo-blue); }
+.f-pill.active { border-color: var(--pengo-blue); background: var(--pengo-blue); color: #fff; }
+.filter-sep { width: 1px; height: 2.4rem; background: #e2e8f0; flex-shrink: 0; }
+.filter-sort {
+    margin-left: auto; display: flex; align-items: center; gap: .8rem;
+}
+.filter-sort select {
+    padding: .7rem 1.2rem; border: 2px solid #e2e8f0; border-radius: .6rem;
+    font-size: 1.3rem; font-weight: 600; background: #fff; outline: none; cursor: pointer;
+}
+.filter-sort select:focus { border-color: var(--pengo-blue); }
+
+/* ── MAIN LAYOUT ── */
+.exp-main { padding: 4rem 0 10rem; background: #f8fafc; }
+
+/* ── TRENDING STRIP ── */
+.trending-strip { margin-bottom: 4rem; }
+.strip-title { font-size: 1.9rem; font-weight: 800; color: #0f172a; margin-bottom: 1.6rem; display: flex; align-items: center; gap: .8rem; }
+.trending-scroll {
+    display: flex; gap: 1.6rem; overflow-x: auto; padding-bottom: 1.2rem;
+    scrollbar-width: thin;
+}
+.trending-scroll::-webkit-scrollbar { height: .5rem; }
+.trending-scroll::-webkit-scrollbar-track { background: #e2e8f0; border-radius: 1rem; }
+.trending-scroll::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 1rem; }
+.trending-card {
+    flex-shrink: 0; width: 20rem; border-radius: 1.2rem; overflow: hidden;
+    background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,.06);
+    cursor: pointer; transition: transform .2s;
+    text-decoration: none; display: block;
+    border: 2px solid transparent;
+}
+.trending-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,.12); }
+.trending-card.selected-trend { border-color: var(--pengo-blue); }
+.tc-img {
+    width: 100%; height: 11rem; object-fit: cover;
+    background-size: cover; background-position: center;
+    position: relative;
+}
+.tc-img-el { width: 100%; height: 11rem; object-fit: cover; display: block; }
+.tc-rank {
+    position: absolute; top: .8rem; left: .8rem;
+    background: var(--pengo-amber); color: #fff;
+    font-size: 1.1rem; font-weight: 800;
+    width: 2.4rem; height: 2.4rem; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+}
+.tc-body { padding: 1.2rem; }
+.tc-body h4 { font-size: 1.45rem; font-weight: 700; color: #1e293b; margin-bottom: .3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tc-meta { font-size: 1.2rem; color: #64748b; display: flex; justify-content: space-between; }
+
+/* ── RESULTS COUNT ── */
+.results-meta { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+.results-count { font-size: 1.5rem; color: #64748b; }
+.results-count span { font-weight: 700; color: #1e293b; }
+.selection-info { font-size: 1.4rem; color: var(--pengo-blue); font-weight: 600; }
+
+/* ── ATTRACTION GRID ── */
+.att-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(28rem, 1fr)); gap: 2.4rem; }
+
+/* ── ATTRACTION CARD (matches dashboard style) ── */
+.att-card {
+    background: #fff; border-radius: 1.6rem; overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,.06);
+    border: 2px solid transparent; transition: all .2s;
+    cursor: pointer; position: relative; display: flex; flex-direction: column;
+}
+.att-card:hover { transform: translateY(-4px); box-shadow: 0 8px 28px rgba(0,0,0,.12); border-color: #e2e8f0; }
+.att-card.selected { border-color: var(--pengo-blue); box-shadow: 0 0 0 4px rgba(37,99,235,.12); }
+.att-card .check-badge {
+    position: absolute; top: 1rem; right: 1rem; z-index: 3;
+    width: 2.8rem; height: 2.8rem; border-radius: 50%;
+    background: var(--pengo-blue); color: #fff;
+    font-size: 1.4rem; font-weight: 700;
+    display: none; align-items: center; justify-content: center;
+    box-shadow: 0 2px 8px rgba(37,99,235,.4);
+}
+.att-card.selected .check-badge { display: flex; }
+.att-photo-wrap {
+    position: relative; overflow: hidden;
+    height: 20rem; flex-shrink: 0; background: #e2e8f0;
+}
+.att-photo-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo-overlay {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,.55) 0%, transparent 100%);
+    padding: 2rem 1.2rem .9rem;
+    display: flex; align-items: flex-end; justify-content: space-between;
+}
+.cat-badge {
+    background: rgba(255,255,255,.92); color: #1e293b;
+    font-size: 1.15rem; font-weight: 700; padding: .28rem 1rem;
+    border-radius: 2rem; text-transform: capitalize;
+}
+.match-pill {
+    background: var(--pengo-blue); color: #fff;
+    font-size: 1.1rem; font-weight: 700; padding: .28rem .9rem;
+    border-radius: 2rem;
+}
+.att-body { padding: 1.4rem 1.6rem 1.6rem; flex: 1; display: flex; flex-direction: column; gap: .5rem; }
+.att-name { font-size: 1.6rem; font-weight: 800; color: #1e293b; line-height: 1.25; }
+.att-loc { display: flex; align-items: center; gap: .4rem; font-size: 1.25rem; color: #64748b; }
+.att-meta { display: flex; align-items: center; gap: .5rem; font-size: 1.3rem; color: #374151; }
+.att-stars { color: var(--pengo-amber); }
+.att-rval { font-weight: 700; }
+.att-tags { margin-top: .2rem; }
+.att-tag { display: inline-block; padding: .3rem 1rem; border-radius: 2rem; font-size: 1.15rem; font-weight: 600; }
+.att-tag-free { background: #dbeafe; color: #1d4ed8; }
+.att-add-btn {
+    margin-top: auto; padding: .9rem 1.2rem; border-radius: .8rem;
+    font-size: 1.4rem; font-weight: 700;
+    border: 2px solid #e2e8f0; background: #fff; color: #374151;
+    cursor: pointer; transition: all .18s; width: 100%;
+}
+.att-add-btn:hover { border-color: var(--pengo-blue); color: var(--pengo-blue); background: #eff6ff; }
+.att-card.selected .att-add-btn { border-color: var(--pengo-blue); background: var(--pengo-blue); color: #fff; }
+
+/* ── GENERATE BAR ── */
+.gen-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+    background: #fff; border-top: 2px solid #e2e8f0;
+    padding: 1.6rem 3.2rem; display: flex; align-items: center; justify-content: space-between; gap: 1.6rem;
+    box-shadow: 0 -4px 16px rgba(0,0,0,.08);
+}
+.gen-bar-left { font-size: 1.5rem; color: #64748b; }
+.gen-bar-left span { font-weight: 700; color: #1e293b; font-size: 1.7rem; }
+.gen-btn {
+    padding: 1.4rem 4.8rem; background: var(--pengo-blue); color: #fff;
+    border: none; border-radius: .8rem; font-size: 1.7rem; font-weight: 700;
+    cursor: pointer; transition: all .2s; white-space: nowrap;
+}
+.gen-btn:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
+.gen-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+/* ── EMPTY STATE ── */
+.empty-state { text-align: center; padding: 8rem 2rem; }
+.empty-state .big-icon { font-size: 6.4rem; margin-bottom: 2rem; }
+.empty-state h3 { font-size: 2.4rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem; }
+.empty-state p { font-size: 1.6rem; color: #64748b; margin-bottom: 2.4rem; }
+.empty-state a { color: var(--pengo-blue); font-weight: 700; text-decoration: none; font-size: 1.6rem; }
+</style>
+{% endblock %}
+
+{% block header %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+<div id="appAlert" class="alert-box error" style="position:fixed;top:7rem;left:50%;transform:translateX(-50%);z-index:500;min-width:32rem;max-width:56rem;display:none;"></div>
+
+<!-- PAGE HEADER -->
+<div class="exp-header">
+    <div class="row">
+        <div class="exp-header-inner">
+            <div>
+                <h1 id="exp-title">Exploring...</h1>
+                <div class="dest-sub" id="exp-sub"></div>
+                <div class="exp-chips" id="exp-chips"></div>
+            </div>
+            <a href="/dashboard" style="color:#94a3b8;font-size:1.45rem;text-decoration:none;font-weight:600;white-space:nowrap;">← New Search</a>
+        </div>
+    </div>
+</div>
+
+<!-- FILTER BAR -->
+<div class="filter-strip">
+    <div class="row">
+        <div class="filter-inner">
+            <div class="filter-group">
+                <span class="filter-label">Category</span>
+                <div class="filter-pills" id="cat-pills">
+                    <button class="f-pill active" data-cat="">All</button>
+                    <button class="f-pill" data-cat="nature">🌿 Nature</button>
+                    <button class="f-pill" data-cat="food">🍜 Food</button>
+                    <button class="f-pill" data-cat="history">🏛️ History</button>
+                    <button class="f-pill" data-cat="shopping">🛍️ Shopping</button>
+                    <button class="f-pill" data-cat="adventure">🧗 Adventure</button>
+                    <button class="f-pill" data-cat="relaxation">🧘 Relaxation</button>
+                </div>
+            </div>
+            <div class="filter-sep"></div>
+            <div class="filter-group">
+                <span class="filter-label">Price</span>
+                <div class="filter-pills" id="price-pills">
+                    <button class="f-pill active" data-price="">Any</button>
+                    <button class="f-pill" data-price="free">Free</button>
+                    <button class="f-pill" data-price="budget">Under $15</button>
+                    <button class="f-pill" data-price="mid">$15–$30</button>
+                    <button class="f-pill" data-price="premium">$30+</button>
+                </div>
+            </div>
+            <div class="filter-sep"></div>
+            <div class="filter-group">
+                <span class="filter-label">Min Rating</span>
+                <div class="filter-pills" id="rating-pills">
+                    <button class="f-pill active" data-rating="0">Any</button>
+                    <button class="f-pill" data-rating="4">4+ ★</button>
+                    <button class="f-pill" data-rating="4.5">4.5+ ★</button>
+                </div>
+            </div>
+            <div class="filter-sort">
+                <span class="filter-label">Sort</span>
+                <select id="sort-sel" onchange="applyFilters()">
+                    <option value="score">Best Match</option>
+                    <option value="rating">Highest Rated</option>
+                    <option value="cost_asc">Price: Low → High</option>
+                    <option value="cost_desc">Price: High → Low</option>
+                    <option value="pop">Most Popular</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="exp-main">
+    <div class="row">
+
+        <!-- TRENDING STRIP -->
+        <div class="trending-strip" id="trending-strip"></div>
+
+        <!-- RESULTS META -->
+        <div class="results-meta">
+            <div class="results-count"><span id="result-count">0</span> attractions found</div>
+            <div class="selection-info" id="sel-info" style="display:none;">
+                <span id="sel-count">0</span> selected — select at least 2 to generate
+            </div>
+        </div>
+
+        <!-- GRID -->
+        <div class="att-grid" id="att-grid">
+            <div class="empty-state">
+                <div class="big-icon">🔍</div>
+                <h3>Loading attractions...</h3>
+                <p>Fetching the best spots for you.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- GENERATE BAR -->
+<div class="gen-bar">
+    <div class="gen-bar-left">
+        <div id="gen-info" style="color:#64748b;font-size:1.5rem;">Select attractions to plan your trip</div>
+    </div>
+    <button class="gen-btn" id="genBtn" disabled onclick="generateItinerary()">Generate My Itinerary →</button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ─── Show topbar search on this page
+document.getElementById('topbar-search-wrap').style.display = 'flex';
+
+const userId = localStorage.getItem('user_id');
+if (!userId) window.location.href = '/login';
+
+let allRecs = [];
+let filtered = [];
+let selectedIds = new Set();
+let activeCat = '', activePrice = '', activeRating = 0;
+
+const destination = sessionStorage.getItem('destination') || '';
+const travelDays  = parseInt(sessionStorage.getItem('travel_days') || '3');
+
+document.getElementById('exp-title').textContent = `Attractions in ${destination}`;
+document.getElementById('exp-sub').textContent = `${travelDays}-day trip · Ranked for your travel style`;
+
+// chips
+const chipsEl = document.getElementById('exp-chips');
+[destination, `${travelDays} days`, localStorage.getItem('persona') || ''].filter(Boolean).forEach(t => {
+    const c = document.createElement('div'); c.className = 'exp-chip'; c.textContent = t; chipsEl.appendChild(c);
+});
+
+// Always fetch fresh data — sessionStorage only used as fallback while loading
+if (!destination) { window.location.href = '/dashboard'; }
+
+document.getElementById('att-grid').innerHTML = `<div class="empty-state"><div class="big-icon">⏳</div><h3>Loading...</h3><p>Fetching attractions for ${destination}…</p></div>`;
+
+fetch('/api/recommendations', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ user_id: parseInt(userId), destination })
+})
+.then(res => res.json().then(data => ({ ok: res.ok, data })))
+.then(({ ok, data }) => {
+    if (ok && data.recommendations && data.recommendations.length) {
+        const seen = new Set();
+        allRecs = data.recommendations.filter(r => {
+            if (seen.has(r.attraction_id)) return false;
+            seen.add(r.attraction_id);
+            return true;
+        });
+        sessionStorage.setItem('recommendations', JSON.stringify(allRecs));
+        buildTrending();
+        applyFilters();
+    } else {
+        document.getElementById('att-grid').innerHTML =
+            `<div class="empty-state"><div class="big-icon">😕</div><h3>No results found</h3>`+
+            `<p>We couldn't find attractions for "${destination}".</p>`+
+            `<a href="/dashboard">← Try another city</a></div>`;
+    }
+})
+.catch(() => {
+    document.getElementById('att-grid').innerHTML =
+        `<div class="empty-state"><div class="big-icon">⚠️</div><h3>Connection error</h3>`+
+        `<p>Could not reach the server.</p><a href="/dashboard">← Go back</a></div>`;
+});
+
+/* ─── TRENDING ─── */
+function buildTrending() {
+    const top = [...allRecs]
+        .filter(r => r.rating >= 4)
+        .sort((a,b) => ((b.rating||0)*(b.popularity_score||1)) - ((a.rating||0)*(a.popularity_score||1)))
+        .slice(0, 8);
+    if (!top.length) return;
+
+    const container = document.getElementById('trending-strip');
+    container.innerHTML = `<div class="strip-title">🔥 Trending in ${destination}</div><div class="trending-scroll" id="trend-scroll"></div>`;
+    const scroll = document.getElementById('trend-scroll');
+
+    top.forEach((r, i) => {
+        const photoUrl = r.photo_reference
+            ? `/api/photo?ref=${encodeURIComponent(r.photo_reference)}&w=400`
+            : null;
+        const bgStyle = photoUrl
+            ? `background-image:url('${photoUrl}');background-size:cover;background-position:center;`
+            : `background:linear-gradient(135deg,${catColor(r.category)});`;
+
+        const card = document.createElement('div');
+        card.className = 'trending-card';
+        card.dataset.id = r.attraction_id;
+        card.innerHTML = `
+            <div class="tc-img" style="${bgStyle}">
+                <div class="tc-rank">${i+1}</div>
+            </div>
+            <div class="tc-body">
+                <h4 title="${r.name}">${r.name}</h4>
+                <div class="tc-meta">
+                    <span>${r.rating ? '⭐ '+r.rating.toFixed(1) : 'No rating'}</span>
+                    <span>${r.entry_cost ? '$'+r.entry_cost.toFixed(0) : 'Free'}</span>
+                </div>
+            </div>`;
+        card.addEventListener('click', () => toggleById(r.attraction_id, card));
+        scroll.appendChild(card);
+    });
+}
+
+/* ─── FILTERS ─── */
+function setFilter(type, val, btn) {
+    if (type === 'cat') { activeCat = val; document.querySelectorAll('#cat-pills .f-pill').forEach(b=>b.classList.toggle('active',b.dataset.cat===val)); }
+    if (type === 'price') { activePrice = val; document.querySelectorAll('#price-pills .f-pill').forEach(b=>b.classList.toggle('active',b.dataset.price===val)); }
+    if (type === 'rating') { activeRating = parseFloat(val); document.querySelectorAll('#rating-pills .f-pill').forEach(b=>b.classList.toggle('active',parseFloat(b.dataset.rating)===parseFloat(val))); }
+    applyFilters();
+}
+
+document.querySelectorAll('#cat-pills .f-pill').forEach(b => b.addEventListener('click', () => setFilter('cat', b.dataset.cat, b)));
+document.querySelectorAll('#price-pills .f-pill').forEach(b => b.addEventListener('click', () => setFilter('price', b.dataset.price, b)));
+document.querySelectorAll('#rating-pills .f-pill').forEach(b => b.addEventListener('click', () => setFilter('rating', b.dataset.rating, b)));
+
+function priceMatch(cost, filter) {
+    if (!filter) return true;
+    cost = cost || 0;
+    if (filter==='free') return cost === 0;
+    if (filter==='budget') return cost > 0 && cost < 15;
+    if (filter==='mid') return cost >= 15 && cost <= 30;
+    if (filter==='premium') return cost > 30;
+    return true;
+}
+
+function applyFilters() {
+    const sort = document.getElementById('sort-sel').value;
+    filtered = allRecs.filter(r =>
+        (!activeCat || r.category === activeCat) &&
+        priceMatch(r.entry_cost, activePrice) &&
+        ((r.rating || 0) >= activeRating)
+    );
+    if (sort==='rating') filtered.sort((a,b)=>(b.rating||0)-(a.rating||0));
+    else if (sort==='cost_asc') filtered.sort((a,b)=>(a.entry_cost||0)-(b.entry_cost||0));
+    else if (sort==='cost_desc') filtered.sort((a,b)=>(b.entry_cost||0)-(a.entry_cost||0));
+    else if (sort==='pop') filtered.sort((a,b)=>(b.popularity_score||0)-(a.popularity_score||0));
+    else filtered.sort((a,b)=>(b.recommendation_score||0)-(a.recommendation_score||0));
+
+    document.getElementById('result-count').textContent = filtered.length;
+    renderGrid();
+}
+
+/* ─── HELPERS ─── */
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function cap(s) { return s ? s.charAt(0).toUpperCase()+s.slice(1) : ''; }
+
+function catColor(cat) {
+    const m = { nature:'#064e3b,#065f46', food:'#78350f,#92400e', history:'#1e3a5f,#1e40af', shopping:'#4a044e,#701a75', adventure:'#450a0a,#7f1d1d', relaxation:'#1e1b4b,#3730a3' };
+    return m[cat] || '#1e293b,#334155';
+}
+
+function _onPhotoLoad(img) { img.closest('.att-card').style.opacity = '1'; }
+function _onPhotoErr(img, hasManualUrl) {
+    const card = img.closest('.att-card');
+    card.style.opacity = '1';
+    const wrap = img.closest('.att-photo-wrap');
+    if (wrap) {
+        const CAT_GRADS = {
+            nature:['#064e3b','#065f46'], food:['#78350f','#92400e'],
+            history:['#1e3a5f','#1e40af'], shopping:['#4a044e','#701a75'],
+            adventure:['#450a0a','#7f1d1d'], relaxation:['#1e1b4b','#3730a3'],
+        };
+        const name = card.querySelector('.att-name')?.textContent || '';
+        const cat  = card.dataset.category || '';
+        const city = card.querySelector('.att-city')?.textContent || '';
+        const g = CAT_GRADS[cat] || ['#1e293b','#334155'];
+        wrap.innerHTML = `<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;
+            justify-content:center;background:linear-gradient(145deg,${g[0]},${g[1]});padding:2rem;text-align:center;">
+            <div style="font-size:1rem;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.55);margin-bottom:.8rem;">${cat}</div>
+            <div style="font-size:1.5rem;font-weight:900;color:#fff;line-height:1.25;">${name}</div>
+            <div style="font-size:1.1rem;color:rgba(255,255,255,.55);margin-top:.5rem;">${city}</div>
+        </div>`;
+    }
+}
+
+function starsHTML(rating) {
+    if (!rating) return '<span style="color:#94a3b8;font-size:1.3rem;">No rating yet</span>';
+    const full = Math.floor(rating), half = (rating%1)>=.5;
+    return `<span class="att-stars">${'★'.repeat(full)}${half?'½':''}</span><span class="att-rval">${rating.toFixed(1)}</span>`;
+}
+
+function buildCard(r) {
+    const sel = selectedIds.has(r.attraction_id);
+    const scoreW = Math.round((r.recommendation_score||0)*100);
+    const photoSrc = r.photo_reference
+        ? `/api/photo?ref=${encodeURIComponent(r.photo_reference)}&w=600`
+        : (r.photo_url || null);
+    const hasManualUrl = !r.photo_reference && !!r.photo_url;
+    const CAT_GRADS = {
+        nature:     ['#064e3b','#065f46'], food:       ['#78350f','#92400e'],
+        history:    ['#1e3a5f','#1e40af'], shopping:   ['#4a044e','#701a75'],
+        adventure:  ['#450a0a','#7f1d1d'], relaxation: ['#1e1b4b','#3730a3'],
+    };
+    const g = CAT_GRADS[r.category] || ['#1e293b','#334155'];
+    const photoHtml = photoSrc
+        ? `<img src="${photoSrc}" alt="${esc(r.name)}"
+               onload="_onPhotoLoad(this)"
+               onerror="_onPhotoErr(this,${hasManualUrl})">`
+        : `<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;
+                       justify-content:center;background:linear-gradient(145deg,${g[0]},${g[1]});
+                       padding:2rem;text-align:center;">
+               <div style="font-size:1.1rem;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.55);margin-bottom:.8rem;">${esc(cap(r.category))}</div>
+               <div style="font-size:1.7rem;font-weight:900;color:#fff;line-height:1.25;">${esc(r.name)}</div>
+               <div style="font-size:1.2rem;color:rgba(255,255,255,.55);margin-top:.5rem;">${esc(r.city||'')}</div>
+           </div>`;
+
+    const card = document.createElement('div');
+    card.className = 'att-card' + (sel ? ' selected' : '');
+    if (photoSrc && !sel) card.style.opacity = '0';
+    card.dataset.id = r.attraction_id;
+    card.dataset.category = r.category || '';
+    card.innerHTML = `
+        <div class="check-badge">✓</div>
+        <div class="att-photo-wrap">
+            ${photoHtml}
+            <div class="photo-overlay">
+                <span class="cat-badge">${esc(cap(r.category))}</span>
+                ${scoreW > 0 ? `<span class="match-pill">${scoreW}% match</span>` : ''}
+            </div>
+        </div>
+        <div class="att-body">
+            <div class="att-name">${esc(r.name)}</div>
+            <div class="att-loc">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5" style="flex-shrink:0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                ${esc(r.city || destination)}
+            </div>
+            <div class="att-meta">${starsHTML(r.rating)}</div>
+            <div class="att-tags">
+                <span class="att-tag att-tag-free">${esc(cap(r.category))}</span>
+            </div>
+            <button class="att-add-btn" onclick="event.stopPropagation();toggleById(${r.attraction_id},this.closest('.att-card'))">
+                ${sel ? 'Added to Plan' : 'Add to Plan'}
+            </button>
+        </div>`;
+    card.addEventListener('click', e => { if (e.target.tagName !== 'BUTTON') toggleById(r.attraction_id, card); });
+    return card;
+}
+
+function renderGrid() {
+    const grid = document.getElementById('att-grid');
+    if (!filtered.length) {
+        grid.innerHTML = `<div class="empty-state"><div class="big-icon">🔎</div><h3>No matches</h3><p>Try removing some filters.</p></div>`;
+        return;
+    }
+    grid.innerHTML = '';
+    const frag = document.createDocumentFragment();
+    filtered.forEach(r => frag.appendChild(buildCard(r)));
+    grid.appendChild(frag);
+}
+
+/* ─── SELECTION ─── */
+function toggleById(id, cardEl) {
+    const removing = selectedIds.has(id);
+    if (removing) {
+        selectedIds.delete(id);
+    } else {
+        selectedIds.add(id);
+    }
+    // Update the clicked card
+    cardEl.classList.toggle('selected', !removing);
+    const btn = cardEl.querySelector('.att-add-btn');
+    if (btn) btn.textContent = removing ? 'Add to Plan' : 'Added to Plan';
+
+    // Sync all att-grid cards with this id
+    document.querySelectorAll('.att-card[data-id="'+id+'"]').forEach(ac => {
+        if (ac === cardEl) return;
+        ac.classList.toggle('selected', !removing);
+        const b = ac.querySelector('.att-add-btn');
+        if (b) b.textContent = removing ? 'Add to Plan' : 'Added to Plan';
+    });
+    // Sync all trending cards with this id
+    document.querySelectorAll('.trending-card[data-id="'+id+'"]').forEach(tc => {
+        tc.classList.toggle('selected-trend', !removing);
+    });
+    updateGenBar();
+}
+
+function updateGenBar() {
+    const count = selectedIds.size;
+    const sel = document.getElementById('sel-info');
+    const info = document.getElementById('gen-info');
+    const btn = document.getElementById('genBtn');
+    sel.style.display = count > 0 ? 'block' : 'none';
+    document.getElementById('sel-count').textContent = count;
+    btn.disabled = count < 2;
+    info.innerHTML = count >= 2
+        ? `<strong>${count} attractions</strong> selected for <strong>${travelDays}-day</strong> trip`
+        : count === 1 ? 'Select at least <strong>2 attractions</strong> to generate an itinerary'
+        : 'Select attractions you want to visit';
+}
+
+/* ─── GENERATE ─── */
+async function generateItinerary() {
+    const btn = document.getElementById('genBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Optimising your route...';
+
+    try {
+        const res = await fetch('/api/itinerary/generate', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({
+                user_id: parseInt(userId),
+                destination,
+                attraction_ids: Array.from(selectedIds),
+                travel_days: travelDays
+            })
+        });
+        const data = await res.json();
+        if (!res.ok) { showAlert(data.error||'Could not generate itinerary.'); btn.disabled=false; btn.textContent='Generate My Itinerary →'; return; }
+        sessionStorage.setItem('itinerary', JSON.stringify(data));
+        window.location.href = '/itinerary';
+    } catch(err) {
+        showAlert('Network error. Is the server running?');
+        btn.disabled = false; btn.textContent = 'Generate My Itinerary →';
+    }
+}
+
+function showAlert(msg) {
+    const el = document.getElementById('appAlert');
+    el.textContent = msg; el.style.display = 'block';
+    setTimeout(()=>{ el.style.display='none'; }, 5000);
+}
+
+// Handle topbar search redirect
+const topbarDest = sessionStorage.getItem('topbar_search');
+if (topbarDest) { sessionStorage.removeItem('topbar_search'); document.getElementById('topbar-dest').value = topbarDest; }
+</script>
+{% endblock %}

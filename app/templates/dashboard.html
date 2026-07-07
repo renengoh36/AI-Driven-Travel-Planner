@@ -1,0 +1,789 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Pengo{% endblock %}
+
+{% block head %}
+<style>
+:root {
+    --b50:#eff6ff;--b100:#dbeafe;--b500:#3b82f6;--b600:#2563eb;--b700:#1d4ed8;
+    --s50:#f8fafc;--s100:#f1f5f9;--s200:#e2e8f0;--s600:#475569;--s700:#334155;--s800:#1e293b;--s900:#0f172a;
+    --amber:#f59e0b;--purple:#7c3aed;
+}
+.s-dashboard { min-height:100vh; background:var(--s50); padding-top:6rem; }
+
+/* ── HERO ── */
+.dash-hero {
+    position:relative; padding:7rem 0 10rem;
+    background:var(--s900);
+    background-image:url('{{ url_for("static", filename="images/hero-1.jpg") }}');
+    background-size:cover; background-position:center 40%; overflow:hidden;
+}
+.dash-hero::after {
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(105deg,rgba(15,23,42,.94) 0%,rgba(15,23,42,.78) 55%,rgba(30,58,95,.55) 100%);
+}
+.dash-hero-inner { position:relative; z-index:2; }
+.hero-eyebrow {
+    font-size:1.15rem; font-weight:800; text-transform:uppercase;
+    letter-spacing:.14em; color:var(--amber);
+    display:flex; align-items:center; gap:.8rem; margin-bottom:1.4rem;
+}
+.hero-eyebrow-line { width:2.4rem; height:2px; background:var(--amber); }
+.dash-hero h1 {
+    font-size:clamp(3.2rem,5vw,5.2rem); font-weight:900; color:#fff;
+    line-height:1.08; letter-spacing:-.025em; margin-bottom:1.2rem;
+}
+.dash-hero-sub { font-size:1.7rem; color:rgba(255,255,255,.6); margin-bottom:2.8rem; max-width:50rem; line-height:1.65; }
+.persona-chip {
+    display:inline-flex; align-items:center; gap:.7rem;
+    background:rgba(37,99,235,.28); border:1px solid rgba(99,155,255,.4);
+    color:#93c5fd; font-size:1.3rem; font-weight:700;
+    padding:.55rem 1.4rem; border-radius:2rem; backdrop-filter:blur(8px);
+}
+.persona-dot { width:.65rem; height:.65rem; border-radius:50%; background:#60a5fa; animation:pdot 2s infinite; }
+@keyframes pdot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+.hero-stats { display:flex; margin-top:3.6rem; }
+.hero-stat { padding:0 2.8rem 0 0; display:flex; flex-direction:column; gap:.3rem; border-right:1px solid rgba(255,255,255,.12); margin-right:2.8rem; }
+.hero-stat:last-child { border-right:none; margin-right:0; }
+.hero-stat-n { font-size:2.8rem; font-weight:900; color:#fff; line-height:1; }
+.hero-stat-l { font-size:1.15rem; font-weight:600; color:rgba(255,255,255,.45); text-transform:uppercase; letter-spacing:.08em; }
+
+/* ── SEARCH CARD ── */
+.search-card { background:#fff; border-radius:1.6rem; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,.14),0 4px 16px rgba(0,0,0,.06); margin-top:-5.2rem; position:relative; z-index:10; }
+.search-card-head { background:linear-gradient(135deg,var(--b600),#1e40af); padding:1.8rem 3.2rem; display:flex; align-items:center; justify-content:space-between; }
+.search-card-head-title { font-size:1.6rem; font-weight:800; color:#fff; }
+.search-card-head-sub { font-size:1.3rem; color:rgba(255,255,255,.65); }
+.search-card-body { padding:2.4rem 3.2rem 2.8rem; }
+.search-row { display:grid; grid-template-columns:1.2fr 2fr 1fr 1fr auto; gap:1.6rem; align-items:end; }
+@media(max-width:1060px){.search-row{grid-template-columns:1fr 1fr 1fr;}} @media(max-width:640px){.search-row{grid-template-columns:1fr;}}
+.sf-label { display:block; font-size:1.2rem; font-weight:800; color:var(--s700); text-transform:uppercase; letter-spacing:.05em; margin-bottom:.6rem; }
+.sf-input,.sf-select { width:100%; padding:1.15rem 1.4rem; border:1.5px solid var(--s200); border-radius:.8rem; font-size:1.5rem; outline:none; background:var(--s50); color:var(--s800); transition:border-color .2s,box-shadow .2s; -webkit-appearance:none; appearance:none; }
+.sf-input:focus,.sf-select:focus { border-color:var(--b500); box-shadow:0 0 0 3px rgba(37,99,235,.1); background:#fff; }
+.btn-search { height:5rem; padding:0 2.8rem; background:linear-gradient(135deg,var(--b600),#1e40af); color:#fff; border:none; border-radius:.8rem; font-size:1.55rem; font-weight:700; cursor:pointer; box-shadow:0 4px 14px rgba(37,99,235,.35); letter-spacing:.02em; transition:transform .2s,box-shadow .2s; white-space:nowrap; }
+.btn-search:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(37,99,235,.42); }
+.btn-search:disabled { opacity:.6; transform:none; cursor:not-allowed; box-shadow:none; }
+
+/* ── CITY SELECTOR ── */
+.city-selector { padding:0 3.2rem 2rem; border-top:1px solid var(--s100); display:none; }
+.city-selector.show { display:block; }
+.city-sel-label { font-size:1.2rem; font-weight:800; color:var(--s700); text-transform:uppercase; letter-spacing:.05em; padding-top:1.6rem; margin-bottom:.9rem; display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; }
+.city-sel-hint { font-size:1.2rem; font-weight:500; color:#94a3b8; text-transform:none; letter-spacing:0; margin-left:auto; }
+.city-pills-row { display:flex; flex-wrap:wrap; gap:.6rem; }
+.city-pill { padding:.55rem 1.4rem; border:1.5px solid var(--s200); border-radius:4rem; font-size:1.3rem; font-weight:600; cursor:pointer; background:#fff; color:var(--s600); transition:all .15s; }
+.city-pill:hover { border-color:var(--b500); color:var(--b600); background:var(--b50); }
+.city-pill.active { border-color:var(--b600); background:var(--b600); color:#fff; }
+.city-pill.all-pill { font-weight:700; }
+.city-pill.all-pill.active { border-color:var(--s900); background:var(--s800); color:#fff; }
+.city-msg { font-size:1.35rem; color:#94a3b8; padding:.5rem 0; }
+
+/* ── FILTER BAR ── */
+.filter-bar { background:#fff; border-bottom:1px solid var(--s200); position:sticky; top:6rem; z-index:90; margin-top:1.6rem; }
+.filter-inner { display:flex; align-items:center; gap:.5rem; overflow-x:auto; padding:1.4rem 0; scrollbar-width:none; }
+.filter-inner::-webkit-scrollbar{display:none;}
+.f-label { font-size:1.2rem; font-weight:800; color:var(--s700); white-space:nowrap; text-transform:uppercase; letter-spacing:.06em; padding:0 .6rem 0 .4rem; flex-shrink:0; }
+.f-pills { display:flex; gap:.5rem; flex-shrink:0; }
+.f-pill { padding:.6rem 1.6rem; border:1.5px solid var(--s200); border-radius:4rem; font-size:1.3rem; font-weight:600; cursor:pointer; background:#fff; color:var(--s600); transition:all .15s; white-space:nowrap; }
+.f-pill:hover { border-color:var(--b500); color:var(--b600); background:var(--b50); }
+.f-pill.active { border-color:var(--b600); background:var(--b600); color:#fff; box-shadow:0 2px 8px rgba(37,99,235,.2); }
+.f-sep { width:1px; height:2rem; background:var(--s200); flex-shrink:0; margin:0 .4rem; }
+
+/* ── CONTENT ── */
+.content-wrap { padding:3.6rem 0 2rem; }
+.section-hd { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:2.8rem; gap:1.6rem; flex-wrap:wrap; }
+.section-hd-left { display:flex; flex-direction:column; gap:.5rem; }
+.section-eyebrow { font-size:1.15rem; font-weight:800; text-transform:uppercase; letter-spacing:.1em; color:var(--b600); }
+.section-title { font-size:2.6rem; font-weight:900; color:var(--s800); letter-spacing:-.01em; }
+.section-sub { font-size:1.45rem; color:var(--s600); }
+.section-count { font-size:1.35rem; font-weight:700; color:var(--s600); background:var(--s100); padding:.5rem 1.4rem; border-radius:2rem; white-space:nowrap; }
+
+/* ── GRID ── */
+.att-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(30rem,1fr)); gap:2.4rem; margin-bottom:4rem; }
+@media(max-width:940px){.att-grid{grid-template-columns:repeat(2,1fr);}} @media(max-width:560px){.att-grid{grid-template-columns:1fr;}}
+
+/* ── CARD ── */
+.att-card { background:#fff; border-radius:1.6rem; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.05),0 4px 16px rgba(0,0,0,.06); border:1.5px solid var(--s200); transition:transform .25s,box-shadow .25s,border-color .25s; cursor:pointer; display:flex; flex-direction:column; position:relative; }
+.att-card:hover { transform:translateY(-5px); box-shadow:0 12px 40px rgba(37,99,235,.12),0 4px 16px rgba(0,0,0,.06); border-color:#bfdbfe; }
+.att-card.selected { border-color:var(--b600); box-shadow:0 0 0 3px rgba(37,99,235,.15),0 8px 32px rgba(37,99,235,.12); }
+.check-badge { position:absolute; top:1rem; right:1rem; z-index:10; width:3rem; height:3rem; border-radius:50%; background:var(--b600); color:#fff; font-size:1.4rem; font-weight:700; display:none; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(37,99,235,.45); }
+.att-card.selected .check-badge { display:flex; }
+
+/* ── PHOTO ── */
+.att-photo-wrap { position:relative; height:21rem; overflow:hidden; flex-shrink:0; background:var(--s200); }
+.att-photo-wrap img { width:100%; height:100%; object-fit:cover; display:block; }
+.att-fallback { width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:2.4rem 2rem; text-align:center; }
+.slide-cat { font-size:1.1rem; font-weight:800; text-transform:uppercase; letter-spacing:.14em; color:rgba(255,255,255,.55); margin-bottom:1rem; }
+.slide-name { font-size:1.9rem; font-weight:900; color:#fff; line-height:1.25; margin-bottom:.7rem; }
+.slide-city { font-size:1.25rem; color:rgba(255,255,255,.55); }
+.photo-overlay { position:absolute; bottom:0; left:0; right:0; padding:2rem 1.6rem .8rem; background:linear-gradient(to top,rgba(0,0,0,.52) 0%,transparent 100%); z-index:3; display:flex; align-items:flex-end; justify-content:space-between; }
+.cat-badge { background:rgba(255,255,255,.92); color:var(--s700); font-size:1.1rem; font-weight:700; padding:.3rem 1rem; border-radius:2rem; text-transform:capitalize; }
+.match-pill { background:linear-gradient(135deg,var(--b600),var(--purple)); color:#fff; font-size:1.1rem; font-weight:800; padding:.3rem .9rem; border-radius:.5rem; }
+
+/* ── CARD BODY ── */
+.att-body { padding:1.6rem 1.8rem; flex:1; display:flex; flex-direction:column; }
+.att-name { font-size:1.7rem; font-weight:800; color:var(--s800); margin-bottom:.4rem; line-height:1.3; }
+.att-loc { font-size:1.3rem; color:var(--s600); margin-bottom:1rem; display:flex; align-items:center; gap:.4rem; }
+.att-rating-row { display:flex; align-items:center; gap:.7rem; margin-bottom:1.2rem; }
+.att-stars { color:var(--amber); font-size:1.35rem; }
+.att-rval { font-size:1.4rem; font-weight:700; color:var(--s700); }
+.att-tags { display:flex; gap:.6rem; flex-wrap:wrap; margin-bottom:1.4rem; }
+.att-tag { font-size:1.2rem; font-weight:600; padding:.3rem 1rem; border-radius:.5rem; }
+.att-tag-free { background:#f0fdf4; color:#15803d; }
+.att-tag-paid { background:var(--b50); color:var(--b700); }
+.att-add-btn { margin-top:auto; padding:1.1rem; border-radius:.8rem; font-size:1.4rem; font-weight:700; border:1.5px solid var(--s200); background:var(--s50); color:var(--s700); cursor:pointer; transition:all .2s; width:100%; letter-spacing:.01em; }
+.att-add-btn:hover { border-color:var(--b500); color:var(--b600); background:var(--b50); box-shadow:0 2px 8px rgba(37,99,235,.1); }
+.att-card.selected .att-add-btn { border-color:var(--b600); background:var(--b600); color:#fff; }
+
+/* ── POPULAR DESTINATIONS ── */
+.pop-wrap { background:#fff; padding:4.4rem 0 5.6rem; border-top:1px solid var(--s100); }
+.dest-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:1.8rem; }
+@media(max-width:1100px){.dest-grid{grid-template-columns:repeat(3,1fr);}} @media(max-width:640px){.dest-grid{grid-template-columns:repeat(2,1fr);}}
+.dest-card { border-radius:1.2rem; overflow:hidden; background:#fff; box-shadow:0 2px 12px rgba(0,0,0,.06); cursor:pointer; transition:transform .2s,box-shadow .2s; text-decoration:none; border:1.5px solid var(--s100); }
+.dest-card:hover { transform:translateY(-4px); box-shadow:0 10px 28px rgba(0,0,0,.13); }
+.dest-img { height:12.5rem; background-size:cover; background-position:center; position:relative; }
+.dest-img::after { content:''; position:absolute; inset:0; background:linear-gradient(to top,rgba(0,0,0,.5) 0%,transparent 60%); }
+.dest-body { padding:1.2rem 1.4rem; }
+.dest-body h4 { font-size:1.5rem; font-weight:800; color:var(--s800); }
+.dest-body p { font-size:1.25rem; color:var(--s600); margin-top:.25rem; }
+
+/* ── GENERATE BAR ── */
+.gen-bar { position:fixed; bottom:0; left:0; right:0; z-index:200; background:#fff; border-top:2px solid var(--b100); padding:1.2rem 3.2rem; display:none; align-items:center; justify-content:space-between; gap:1.6rem; box-shadow:0 -4px 24px rgba(37,99,235,.1); }
+.gen-bar.visible { display:flex; }
+.gen-count-badge { width:3.4rem; height:3.4rem; border-radius:50%; background:var(--b600); color:#fff; font-size:1.5rem; font-weight:900; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.gen-label { font-size:1.5rem; color:var(--s600); }
+.gen-label strong { color:var(--s800); font-weight:800; }
+.gen-clear { font-size:1.3rem; color:#94a3b8; background:none; border:none; cursor:pointer; text-decoration:underline; margin-left:.4rem; }
+.gen-right { display:flex; align-items:center; gap:1.6rem; }
+.gen-days { display:flex; align-items:center; gap:.6rem; font-size:1.4rem; color:var(--s600); }
+.gen-days input { width:5.5rem; padding:.5rem .8rem; border:1.5px solid var(--s200); border-radius:.6rem; font-size:1.4rem; text-align:center; outline:none; }
+.gen-btn { padding:1.1rem 3.2rem; background:linear-gradient(135deg,var(--b600),#1e40af); color:#fff; border:none; border-radius:.8rem; font-size:1.55rem; font-weight:700; cursor:pointer; box-shadow:0 4px 14px rgba(37,99,235,.35); transition:transform .2s,box-shadow .2s; white-space:nowrap; }
+.gen-btn:hover { transform:translateY(-2px); box-shadow:0 8px 22px rgba(37,99,235,.42); }
+
+/* ── STATES ── */
+.loading-state { grid-column:1/-1; padding:7rem 2rem; text-align:center; }
+.loading-dots { display:flex; gap:.7rem; justify-content:center; margin-bottom:2rem; }
+.ldot { width:1.2rem; height:1.2rem; border-radius:50%; background:#bfdbfe; animation:ldp 1.2s ease-in-out infinite; }
+.ldot:nth-child(2){animation-delay:.15s;} .ldot:nth-child(3){animation-delay:.3s;}
+@keyframes ldp{0%,100%{transform:scale(.8);opacity:.4}50%{transform:scale(1.2);opacity:1;background:var(--b600)}}
+.loading-txt { font-size:1.55rem; color:var(--s600); }
+.empty-state { grid-column:1/-1; text-align:center; padding:7rem 2rem; }
+.empty-title { font-size:2.2rem; font-weight:800; color:var(--s800); margin-bottom:.8rem; }
+.empty-sub { font-size:1.55rem; color:var(--s600); }
+.alert-strip { display:none; padding:1.2rem 1.6rem; border-radius:.8rem; font-size:1.45rem; margin-bottom:1.6rem; }
+.alert-strip.err { display:block; background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+{% endblock %}
+
+{% block header %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+<div class="s-dashboard">
+
+<!-- ═══ HERO ═══ -->
+<div class="dash-hero">
+    <div class="dash-hero-inner row">
+        <div class="hero-eyebrow"><span class="hero-eyebrow-line"></span>AI-Powered Travel</div>
+        <h1 id="hero-greeting">Welcome back!</h1>
+        <p class="dash-hero-sub">Your personalised travel planner — discover attractions ranked just for you.</p>
+        <div id="persona-chip" class="persona-chip" style="display:none;">
+            <span class="persona-dot"></span><span id="persona-text"></span>
+        </div>
+        <div class="hero-stats" id="hero-stats" style="display:none;">
+            <div class="hero-stat"><span class="hero-stat-n" id="stat-total">—</span><span class="hero-stat-l">Attractions</span></div>
+            <div class="hero-stat"><span class="hero-stat-n" id="stat-cities">—</span><span class="hero-stat-l">Cities</span></div>
+            <div class="hero-stat"><span class="hero-stat-n">AI</span><span class="hero-stat-l">Personalised</span></div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ SEARCH CARD ═══ -->
+<div class="row">
+    <div class="search-card">
+        <div class="search-card-head">
+            <span class="search-card-head-title">Search a Destination</span>
+            <span class="search-card-head-sub">Find attractions anywhere in the world</span>
+        </div>
+        <div class="search-card-body">
+            <div id="search-alert" class="alert-strip"></div>
+            <div class="search-row">
+                <div>
+                    <label class="sf-label">Country</label>
+                    <select id="country" class="sf-select" onchange="onCountryChange(this.value)">
+                        <option value="">Any Country</option>
+                        <option>Australia</option><option>France</option><option>Germany</option>
+                        <option>Greece</option><option>India</option><option>Indonesia</option>
+                        <option>Italy</option><option>Japan</option><option>Malaysia</option>
+                        <option>New Zealand</option><option>Singapore</option><option>South Korea</option>
+                        <option>Spain</option><option>Taiwan</option><option>Thailand</option>
+                        <option>Turkey</option><option>UAE</option><option>United Kingdom</option>
+                        <option>USA</option><option>Vietnam</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="sf-label">City / Destination</label>
+                    <input type="text" id="destination" class="sf-input" placeholder="e.g. Tokyo, Paris, Kuala Lumpur">
+                </div>
+                <div>
+                    <label class="sf-label">Travel Days</label>
+                    <input type="number" id="travel_days" class="sf-input" value="3" min="1" max="14">
+                </div>
+                <div>
+                    <label class="sf-label">Max Budget (RM)</label>
+                    <input type="number" id="budget" class="sf-input" placeholder="No limit" min="0">
+                </div>
+                <button class="btn-search" id="searchBtn" onclick="searchDestination()">Search</button>
+            </div>
+        </div>
+        <!-- City selector — appears when a country is chosen -->
+        <div class="city-selector" id="city-selector">
+            <div class="city-sel-label">
+                Cities available in <strong id="city-sel-country">—</strong>
+                <span class="city-sel-hint">Click to filter recommendations below</span>
+            </div>
+            <div class="city-pills-row" id="city-pills-row">
+                <span class="city-msg">Loading…</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ FILTER BAR ═══ -->
+<div class="filter-bar">
+    <div class="row">
+        <div class="filter-inner">
+            <span class="f-label">Category</span>
+            <div class="f-pills" id="cat-pills">
+                <button class="f-pill active" data-cat="" onclick="setFilter('cat','',this)">All</button>
+                <button class="f-pill" data-cat="nature" onclick="setFilter('cat','nature',this)">Nature</button>
+                <button class="f-pill" data-cat="food" onclick="setFilter('cat','food',this)">Food</button>
+                <button class="f-pill" data-cat="history" onclick="setFilter('cat','history',this)">History</button>
+                <button class="f-pill" data-cat="shopping" onclick="setFilter('cat','shopping',this)">Shopping</button>
+                <button class="f-pill" data-cat="adventure" onclick="setFilter('cat','adventure',this)">Adventure</button>
+                <button class="f-pill" data-cat="relaxation" onclick="setFilter('cat','relaxation',this)">Relaxation</button>
+            </div>
+            <div class="f-sep"></div>
+            <span class="f-label">Price</span>
+            <div class="f-pills" id="price-pills">
+                <button class="f-pill active" data-price="" onclick="setFilter('price','',this)">Any</button>
+                <button class="f-pill" data-price="free" onclick="setFilter('price','free',this)">Free</button>
+                <button class="f-pill" data-price="low" onclick="setFilter('price','low',this)">Under $15</button>
+                <button class="f-pill" data-price="mid" onclick="setFilter('price','mid',this)">$15 – $30</button>
+                <button class="f-pill" data-price="high" onclick="setFilter('price','high',this)">$30+</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ RECOMMENDATIONS ═══ -->
+<div class="content-wrap">
+    <div class="row">
+        <div class="section-hd">
+            <div class="section-hd-left">
+                <span class="section-eyebrow">Personalised Picks</span>
+                <div class="section-title">Recommended for You</div>
+                <div class="section-sub" id="section-sub">Based on your travel persona</div>
+            </div>
+            <div class="section-count" id="result-count-wrap" style="display:none;">
+                <span id="result-count">0</span> attractions
+            </div>
+        </div>
+        <div class="att-grid" id="att-grid">
+            <div class="loading-state">
+                <div class="loading-dots"><div class="ldot"></div><div class="ldot"></div><div class="ldot"></div></div>
+                <div class="loading-txt">Loading your personalised recommendations…</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ POPULAR DESTINATIONS ═══ -->
+<div class="pop-wrap">
+    <div class="row">
+        <div class="section-hd" style="margin-bottom:2.4rem;">
+            <div class="section-hd-left">
+                <span class="section-eyebrow">Explore</span>
+                <div class="section-title">Popular Destinations</div>
+                <div class="section-sub">Click a city to see its top attractions</div>
+            </div>
+        </div>
+        <div class="dest-grid">
+            <div class="dest-card" onclick="quickSearch('Tokyo','Japan')">
+                <div class="dest-img" style="background:#1a2e4a url('{{ url_for('static',filename='images/dest-tokyo.jpg') }}') center/cover;"></div>
+                <div class="dest-body"><h4>Tokyo</h4><p>Japan · Culture &amp; Food</p></div>
+            </div>
+            <div class="dest-card" onclick="quickSearch('Paris','France')">
+                <div class="dest-img" style="background:#2e1a1a url('{{ url_for('static',filename='images/dest-paris.jpg') }}') center/cover;"></div>
+                <div class="dest-body"><h4>Paris</h4><p>France · Art &amp; History</p></div>
+            </div>
+            <div class="dest-card" onclick="quickSearch('Kuala Lumpur','Malaysia')">
+                <div class="dest-img" style="background:#1a1a2e url('{{ url_for('static',filename='images/dest-kl.jpg') }}') center/cover;"></div>
+                <div class="dest-body"><h4>Kuala Lumpur</h4><p>Malaysia · Shopping &amp; Food</p></div>
+            </div>
+            <div class="dest-card" onclick="quickSearch('Bali','Indonesia')">
+                <div class="dest-img" style="background:#1a2e1a url('{{ url_for('static',filename='images/dest-bali.jpg') }}') center/cover;"></div>
+                <div class="dest-body"><h4>Bali</h4><p>Indonesia · Nature &amp; Relaxation</p></div>
+            </div>
+            <div class="dest-card" onclick="quickSearch('Seoul','South Korea')">
+                <div class="dest-img" style="background:#1a1a2e url('{{ url_for('static',filename='images/dest-seoul.jpg') }}') center/cover;"></div>
+                <div class="dest-body"><h4>Seoul</h4><p>South Korea · K-Culture &amp; Food</p></div>
+            </div>
+            <div class="dest-card" onclick="quickSearch('Singapore','Singapore')">
+                <div class="dest-img" style="background:#0a2e2e url('{{ url_for('static',filename='images/dest-singapore.jpg') }}') center/cover;"></div>
+                <div class="dest-body"><h4>Singapore</h4><p>Gardens &amp; Modern City</p></div>
+            </div>
+            <div class="dest-card" onclick="quickSearch('Barcelona','Spain')">
+                <div class="dest-img" style="background:#2e1a0a url('{{ url_for('static',filename='images/dest-barcelona.jpg') }}') center/cover;"></div>
+                <div class="dest-body"><h4>Barcelona</h4><p>Spain · Architecture &amp; Beach</p></div>
+            </div>
+            <div class="dest-card" onclick="quickSearch('Istanbul','Turkey')">
+                <div class="dest-img" style="background:#1e1a0a url('{{ url_for('static',filename='images/dest-istanbul.jpg') }}') center/cover;"></div>
+                <div class="dest-body"><h4>Istanbul</h4><p>Turkey · History &amp; Culture</p></div>
+            </div>
+            <div class="dest-card" onclick="quickSearch('Penang','Malaysia')">
+                <div class="dest-img" style="background:#2e1a2e url('{{ url_for('static',filename='images/dest-penang.jpg') }}') center/cover;"></div>
+                <div class="dest-body"><h4>Penang</h4><p>Malaysia · Heritage &amp; Food</p></div>
+            </div>
+            <div class="dest-card" onclick="quickSearch('Taipei','Taiwan')">
+                <div class="dest-img" style="background:#0a1e2e url('{{ url_for('static',filename='images/dest-taipei.jpg') }}') center/cover;"></div>
+                <div class="dest-body"><h4>Taipei</h4><p>Taiwan · Night Markets &amp; Culture</p></div>
+            </div>
+        </div>
+    </div>
+</div>
+</div><!-- /s-dashboard -->
+
+<!-- ═══ GENERATE BAR ═══ -->
+<div class="gen-bar" id="gen-bar">
+    <div style="display:flex;align-items:center;gap:1.2rem;">
+        <div class="gen-count-badge" id="gen-badge">0</div>
+        <div>
+            <div class="gen-label"><strong id="sel-count">0</strong> attraction<span id="sel-plural">s</span> selected</div>
+            <button class="gen-clear" onclick="clearSelection()">Clear all</button>
+        </div>
+    </div>
+    <div class="gen-right">
+        <div class="gen-days"><input type="number" id="gen-days" value="3" min="1" max="14"> day trip</div>
+        <button class="gen-btn" onclick="generateItinerary()">Generate My Itinerary</button>
+    </div>
+</div>
+
+<footer style="background:#0f172a;color:#475569;padding:2.4rem 0;">
+    <div class="row" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
+        <span style="font-size:1.4rem;"><strong style="color:#fff;font-weight:900;font-size:1.7rem;">Pen<span style="color:#f59e0b;">go</span></strong> &nbsp;© 2026 All rights reserved.</span>
+        <span style="font-size:1.35rem;">
+            <a href="/about" style="color:#64748b;text-decoration:none;">About</a> &nbsp;·&nbsp;
+            <a href="/profile" style="color:#64748b;text-decoration:none;">Preferences</a>
+        </span>
+    </div>
+</footer>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── AUTH ──
+const userId = localStorage.getItem('user_id');
+if (!userId) window.location.href = '/login';
+
+// ── HERO ──
+const userName = localStorage.getItem('user_name') || 'Traveller';
+const persona  = localStorage.getItem('persona') || '';
+document.getElementById('hero-greeting').textContent = `Welcome back, ${userName}!`;
+if (persona) {
+    document.getElementById('persona-text').textContent = persona;
+    document.getElementById('persona-chip').style.display = 'inline-flex';
+    document.getElementById('section-sub').textContent = `Tailored for your "${persona}" persona`;
+}
+
+// Topbar redirect
+const _ts = sessionStorage.getItem('topbar_search');
+if (_ts) { sessionStorage.removeItem('topbar_search'); document.getElementById('destination').value = _ts; searchDestination(); }
+
+const G_KEY = "{{ google_api_key }}";
+
+// ── GRADIENTS ──
+const CAT_GRADS = {
+    nature:     ['#064e3b','#065f46'],
+    food:       ['#78350f','#92400e'],
+    history:    ['#1e3a5f','#1e40af'],
+    shopping:   ['#4a044e','#701a75'],
+    adventure:  ['#450a0a','#7f1d1d'],
+    relaxation: ['#1e1b4b','#3730a3'],
+};
+const cap = s => s ? s.charAt(0).toUpperCase()+s.slice(1) : '';
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+// ── STATE ──
+let allRecs = [], filtered = [], selectedIds = new Set(), _personaRecs = [];
+let activeCat = '', activePrice = '';
+let availableCities = [], selectedCities = new Set();
+
+// ── SESSION CACHE (5-min TTL stops repeated slow ML calls) ──
+const CACHE_KEY = 'persona_recs_v3';
+const CACHE_TS  = 'persona_recs_ts_v3';
+const CACHE_TTL = 5 * 60 * 1000;
+
+async function loadPersonaRecs() {
+    // Use cache on return visits — instant render
+    const cached = sessionStorage.getItem(CACHE_KEY);
+    const cacheTs = parseInt(sessionStorage.getItem(CACHE_TS) || '0');
+    if (cached && Date.now() - cacheTs < CACHE_TTL) {
+        try {
+            allRecs = JSON.parse(cached);
+            _personaRecs = allRecs.slice();
+            updateHeroStats(); applyFilters(); return;
+        } catch(e) { /* fall through */ }
+    }
+    // Fetch with 25-second hard timeout so the page never hangs forever
+    const ctrl = new AbortController();
+    const tmr  = setTimeout(() => ctrl.abort(), 25000);
+    try {
+        const res  = await fetch(`/api/recommendations/persona?user_id=${userId}`, { signal: ctrl.signal });
+        clearTimeout(tmr);
+        const data = await res.json();
+        if (res.ok && data.recommendations?.length) {
+            allRecs = data.recommendations;
+            _personaRecs = allRecs.slice();
+            sessionStorage.setItem(CACHE_KEY, JSON.stringify(allRecs));
+            sessionStorage.setItem(CACHE_TS, Date.now().toString());
+            updateHeroStats(); applyFilters();
+        } else {
+            showEmpty('Search a destination above to discover personalised recommendations.');
+        }
+    } catch(e) {
+        clearTimeout(tmr);
+        showEmpty(e.name === 'AbortError'
+            ? 'Loading timed out — please refresh the page.'
+            : 'Could not connect to server.');
+    }
+}
+loadPersonaRecs();
+
+function updateHeroStats() {
+    const cities = [...new Set(allRecs.map(r=>r.city).filter(Boolean))];
+    document.getElementById('stat-total').textContent = allRecs.length;
+    document.getElementById('stat-cities').textContent = cities.length;
+    document.getElementById('hero-stats').style.display = 'flex';
+    document.getElementById('result-count-wrap').style.display = 'inline-block';
+}
+
+// ── COUNTRY → CITY SELECTOR ──
+async function onCountryChange(country) {
+    const sel = document.getElementById('city-selector');
+    const row = document.getElementById('city-pills-row');
+    if (!country) {
+        sel.classList.remove('show');
+        availableCities = []; selectedCities.clear();
+        applyFilters(); return;
+    }
+    document.getElementById('city-sel-country').textContent = country;
+    sel.classList.add('show');
+    row.innerHTML = '<span class="city-msg">Loading cities…</span>';
+    try {
+        const res  = await fetch(`/api/cities?country=${encodeURIComponent(country)}`);
+        const data = await res.json();
+        availableCities = (data.cities||[]).map(c=>c.city);
+        selectedCities  = new Set(availableCities);
+        if (!availableCities.length) {
+            row.innerHTML = `<span class="city-msg">No cities for ${country} in database yet. Type a city name in the search box above to add it.</span>`;
+        } else {
+            renderCityPills(); applyFilters();
+        }
+    } catch(e) {
+        row.innerHTML = '<span class="city-msg">Could not load cities.</span>';
+    }
+}
+
+let activeCityPill = null; // null = All Cities (persona picks)
+
+function renderCityPills() {
+    const row = document.getElementById('city-pills-row');
+    row.innerHTML = '';
+    // "All Cities" pill — shows persona picks
+    const allBtn = document.createElement('button');
+    allBtn.className = 'city-pill all-pill' + (activeCityPill === null ? ' active' : '');
+    allBtn.textContent = 'All Cities';
+    allBtn.onclick = () => {
+        activeCityPill = null;
+        renderCityPills();
+        // restore original persona picks
+        allRecs = _personaRecs.slice();
+        applyFilters();
+    };
+    row.appendChild(allBtn);
+    // Individual city pills — fetch recommendations for that city
+    availableCities.forEach(city => {
+        const btn = document.createElement('button');
+        btn.className = 'city-pill' + (activeCityPill === city ? ' active' : '');
+        btn.textContent = city;
+        btn.onclick = () => fetchCityRecs(city);
+        row.appendChild(btn);
+    });
+}
+
+async function fetchCityRecs(city) {
+    activeCityPill = city;
+    renderCityPills();
+    const grid = document.getElementById('att-grid');
+    grid.innerHTML = '<div class="ld-wrap"><span class="ld-dot"></span><span class="ld-dot"></span><span class="ld-dot"></span></div>';
+    try {
+        const res  = await fetch('/api/recommendations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: parseInt(userId), destination: city }),
+        });
+        const data = await res.json();
+        if (!res.ok) { showEmpty(data.error || `No attractions found for ${city}.`); return; }
+        allRecs = data.recommendations || [];
+        applyFilters();
+    } catch(e) {
+        showEmpty(`Could not load attractions for ${city}.`);
+    }
+}
+
+// ── FILTERS ──
+function setFilter(type, val, btn) {
+    if (type==='cat') { activeCat=val; document.querySelectorAll('#cat-pills .f-pill').forEach(b=>b.classList.toggle('active',b.dataset.cat===val)); }
+    if (type==='price') { activePrice=val; document.querySelectorAll('#price-pills .f-pill').forEach(b=>b.classList.toggle('active',b.dataset.price===val)); }
+    applyFilters();
+}
+function priceMatch(cost,f) {
+    if (!f) return true; cost=cost||0;
+    if (f==='free') return cost===0;
+    if (f==='low')  return cost>0&&cost<15;
+    if (f==='mid')  return cost>=15&&cost<=30;
+    if (f==='high') return cost>30;
+    return true;
+}
+function applyFilters() {
+    filtered = allRecs.filter(r => {
+        if (activeCat && r.category !== activeCat) return false;
+        if (!priceMatch(r.entry_cost, activePrice)) return false;
+        return true;
+    });
+    document.getElementById('result-count').textContent = filtered.length;
+    renderGrid();
+}
+
+// ── RENDER ──
+function renderGrid() {
+    const grid = document.getElementById('att-grid');
+    if (!filtered.length) {
+        const msg = allRecs.length
+            ? `No matches for the current filters. Try clearing some filters or selecting more cities.`
+            : 'Search a destination above to discover personalised recommendations.';
+        grid.innerHTML = `<div class="empty-state"><div class="empty-title">No matches</div><div class="empty-sub">${msg}</div></div>`;
+        return;
+    }
+    grid.innerHTML = '';
+    const frag = document.createDocumentFragment();
+    filtered.forEach(r => frag.appendChild(buildCard(r)));
+    grid.appendChild(frag);
+}
+function showEmpty(msg) {
+    document.getElementById('att-grid').innerHTML = `<div class="empty-state"><div class="empty-title">Ready to explore?</div><div class="empty-sub">${msg}</div></div>`;
+    document.getElementById('result-count').textContent = '0';
+}
+
+// ── BUILD CARD ──
+function buildCard(r) {
+    const sel    = selectedIds.has(r.attraction_id);
+    const g      = CAT_GRADS[r.category] || ['#1e293b','#334155'];
+    const scoreW = Math.round((r.recommendation_score||0)*100);
+
+    // Use direct URL if available; otherwise show gradient (no proxy calls)
+    const photoSrc = (!r.photo_reference && r.photo_url) ? r.photo_url : null;
+    const photoHtml = photoSrc
+        ? `<img src="${photoSrc}" alt="${esc(r.name)}"
+               onload="_onPhotoLoad(this)"
+               onerror="_onPhotoErr(this, true)">`
+        : `<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+                       background:linear-gradient(145deg,${g[0]},${g[1]});padding:2rem;text-align:center;">
+               <div style="font-size:1.1rem;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.55);margin-bottom:.8rem;">${esc(cap(r.category))}</div>
+               <div style="font-size:1.9rem;font-weight:900;color:#fff;line-height:1.25;">${esc(r.name)}</div>
+               <div style="font-size:1.25rem;color:rgba(255,255,255,.55);margin-top:.5rem;">${esc(r.city||'')}</div>
+           </div>`;
+
+    const starsHtml = r.rating
+        ? `<span class="att-stars">${'★'.repeat(Math.floor(r.rating))}${(r.rating%1)>=.5?'½':''}</span><span class="att-rval">${r.rating.toFixed(1)}</span>`
+        : `<span style="font-size:1.3rem;color:#94a3b8;">No rating yet</span>`;
+
+    const card = document.createElement('div');
+    card.className = 'att-card' + (sel ? ' selected' : '');
+    // cards always visible; photo loads in place (or onerror shows gradient)
+    card.dataset.id = r.attraction_id;
+    card.innerHTML = `
+        <div class="check-badge">✓</div>
+        <div class="att-photo-wrap">
+            ${photoHtml}
+            <div class="photo-overlay">
+                <span class="cat-badge">${esc(cap(r.category))}</span>
+                ${scoreW > 0 ? `<span class="match-pill">${scoreW}% match</span>` : ''}
+            </div>
+        </div>
+        <div class="att-body">
+            <div class="att-name">${esc(r.name)}</div>
+            <div class="att-loc">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5" style="flex-shrink:0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                ${esc(r.city||'')}${r.country ? ', '+esc(r.country) : ''}
+            </div>
+            <div class="att-rating-row">${starsHtml}</div>
+            <div class="att-tags">
+                <span class="att-tag att-tag-free">${r.category ? r.category.charAt(0).toUpperCase() + r.category.slice(1) : ''}</span>
+            </div>
+            <button class="att-add-btn" onclick="event.stopPropagation();toggleCard(${r.attraction_id})">
+                ${sel ? 'Added to Plan' : 'Add to Plan'}
+            </button>
+        </div>`;
+
+    card.addEventListener('click', e => { if (e.target.tagName !== 'BUTTON') toggleCard(r.attraction_id); });
+    return card;
+}
+
+function _onPhotoLoad(img) { img.closest('.att-card').style.opacity = '1'; }
+function _onPhotoErr(img, hasManualUrl) {
+    const card = img.closest('.att-card');
+    const wrap = img.closest('.att-photo-wrap');
+    if (!card || !wrap) return;
+    const r = allRecs.find(x => x.attraction_id === parseInt(card.dataset.id)) || {};
+    const g = CAT_GRADS[r.category] || ['#1e293b','#334155'];
+    // Replace broken image with gradient fallback
+    wrap.innerHTML = `<div style="width:100%;height:100%;display:flex;flex-direction:column;
+        align-items:center;justify-content:center;background:linear-gradient(145deg,${g[0]},${g[1]});
+        padding:2rem;text-align:center;">
+        <div style="font-size:1.1rem;font-weight:800;text-transform:uppercase;letter-spacing:.14em;
+            color:rgba(255,255,255,.55);margin-bottom:.8rem;">${r.category||''}</div>
+        <div style="font-size:1.9rem;font-weight:900;color:#fff;line-height:1.25;">${r.name||''}</div>
+        <div style="font-size:1.25rem;color:rgba(255,255,255,.55);margin-top:.5rem;">${r.city||''}</div>
+    </div>`;
+    card.style.opacity = '1';
+}
+
+// ── SELECTION ──
+let activeTripCity = null;
+
+function toggleCard(id) {
+    const removing = selectedIds.has(id);
+
+    if (!removing) {
+        const rec = (filtered.length ? filtered : allRecs).find(r => r.attraction_id === id);
+        const recCity = rec?.city || null;
+
+        // Option A: if adding from a different city, prompt to clear
+        if (activeTripCity && recCity && recCity !== activeTripCity) {
+            if (!confirm(`Your current selection is for ${activeTripCity}.\n\nSwitch to ${recCity} and clear current selection?`)) return;
+            clearSelection();
+            activeTripCity = recCity;
+        } else if (recCity) {
+            activeTripCity = activeTripCity || recCity;
+        }
+    } else if (selectedIds.size === 1) {
+        activeTripCity = null; // last item removed, reset city lock
+    }
+
+    removing ? selectedIds.delete(id) : selectedIds.add(id);
+    // Log attraction_add event for behavioural profiling (fire-and-forget)
+    if (!removing) {
+        const rec = (filtered.length ? filtered : allRecs).find(r => r.attraction_id === id);
+        if (rec && rec.category) {
+            fetch('/api/behaviour/log', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: parseInt(userId),
+                    event_type: 'attraction_add',
+                    category: rec.category,
+                    attraction_id: id,
+                }),
+            }).catch(() => {});   // silently ignore failures
+        }
+    }
+    document.querySelectorAll(`.att-card[data-id="${id}"]`).forEach(c => {
+        c.classList.toggle('selected', !removing);
+        const b = c.querySelector('.att-add-btn');
+        if (b) b.textContent = removing ? 'Add to Plan' : 'Added to Plan';
+    });
+    updateBar();
+}
+function clearSelection() {
+    selectedIds.clear();
+    activeTripCity = null;
+    document.querySelectorAll('.att-card').forEach(c => {
+        c.classList.remove('selected');
+        const b = c.querySelector('.att-add-btn'); if (b) b.textContent = 'Add to Plan';
+    });
+    updateBar();
+}
+function updateBar() {
+    const n = selectedIds.size;
+    document.getElementById('gen-bar').classList.toggle('visible', n > 0);
+    document.getElementById('gen-badge').textContent = n;
+    document.getElementById('sel-count').textContent = n;
+    document.getElementById('sel-plural').textContent = n === 1 ? '' : 's';
+}
+
+// ── QUICK SEARCH (popular destinations) ──
+function quickSearch(city, country) {
+    document.getElementById('destination').value = city;
+    const sel = document.getElementById('country');
+    Array.from(sel.options).forEach(o => { if (o.text === country) sel.value = o.value; });
+    searchDestination();
+}
+
+// ── MAIN SEARCH → recommendations page ──
+async function searchDestination() {
+    const dest    = document.getElementById('destination').value.trim();
+    const country = document.getElementById('country').value.trim();
+    const days    = parseInt(document.getElementById('travel_days').value) || 3;
+    const bRaw    = document.getElementById('budget').value;
+    const budget  = bRaw ? parseFloat(bRaw) : null;
+    const alertEl = document.getElementById('search-alert');
+    const btn     = document.getElementById('searchBtn');
+    const term    = dest || country;
+    if (!term) {
+        alertEl.className = 'alert-strip err';
+        alertEl.textContent = 'Please enter a city or select a country to search.'; return;
+    }
+    alertEl.className = 'alert-strip';
+    btn.disabled = true;
+    btn.innerHTML = '<span style="display:inline-block;width:1.2rem;height:1.2rem;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:.5rem;"></span>Fetching…';
+    try {
+        const body = { user_id: parseInt(userId), destination: term };
+        if (budget) body.budget = budget;
+        const res  = await fetch('/api/recommendations', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+        const data = await res.json();
+        if (!res.ok) {
+            alertEl.className = 'alert-strip err';
+            alertEl.textContent = data.error || 'Could not fetch attractions.';
+            btn.disabled = false; btn.textContent = 'Search'; return;
+        }
+        sessionStorage.setItem('recommendations', JSON.stringify(data.recommendations));
+        sessionStorage.setItem('destination', term);
+        sessionStorage.setItem('travel_days', days);
+        if (budget) sessionStorage.setItem('budget', budget);
+        // Bust persona cache so new city data shows on return
+        sessionStorage.removeItem(CACHE_KEY);
+        window.location.href = '/recommendations';
+    } catch(e) {
+        alertEl.className = 'alert-strip err';
+        alertEl.textContent = 'Network error — is the server running?';
+        btn.disabled = false; btn.textContent = 'Search';
+    }
+}
+
+// ── GENERATE ITINERARY ──
+async function generateItinerary() {
+    if (selectedIds.size < 2) { alert('Select at least 2 attractions.'); return; }
+    const days = parseInt(document.getElementById('gen-days').value) || 3;
+    const btn  = document.querySelector('.gen-btn');
+    btn.disabled = true; btn.textContent = 'Optimising…';
+    const first = allRecs.find(r => selectedIds.has(r.attraction_id));
+    try {
+        const res  = await fetch('/api/itinerary/generate', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id:parseInt(userId), destination:first?.city||'Unknown', attraction_ids:Array.from(selectedIds), travel_days:days }) });
+        const data = await res.json();
+        if (!res.ok) { alert(data.error||'Could not generate.'); btn.disabled=false; btn.textContent='Generate My Itinerary'; return; }
+        sessionStorage.setItem('itinerary', JSON.stringify(data));
+        window.location.href = '/itinerary';
+    } catch(e) { alert('Network error.'); btn.disabled=false; btn.textContent='Generate My Itinerary'; }
+}
+</script>
+{% endblock %}
