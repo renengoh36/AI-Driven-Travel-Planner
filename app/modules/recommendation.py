@@ -20,7 +20,7 @@ def encode_attraction(attraction):
         tier = "mid-range"
     else:
         tier = "luxury"
-    vec = BUDGET_TIER_MAP.get(tier, [0, 1, 0])
+    vec = list(BUDGET_TIER_MAP.get(tier, [0, 1, 0]))
     vec += [0, 0, 0]  # no weather attribute for attractions
     category = (attraction.get("category") or "").lower()
     vec += [1 if category == c else 0 for c in INTEREST_OPTIONS]
