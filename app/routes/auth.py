@@ -1,21 +1,9 @@
-"""
-Auth routes — POST /api/users/register and POST /api/users/onboarding
-
-/register   — create account, return user_id
-/onboarding — save profile, assign persona via K-Means, return persona_label
-"""
-
 import bcrypt
 from flask import Blueprint, request, jsonify
 from app.models.db import db
 from app.models.user import User
 from app.models.user_profile import UserProfile
-from app.modules.profiling import (
-    assign_persona,
-    INTEREST_OPTIONS,
-    BUDGET_OPTIONS,
-    WEATHER_OPTIONS,
-)
+from app.modules.profiling import assign_persona, INTEREST_OPTIONS, BUDGET_OPTIONS, WEATHER_OPTIONS
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -23,45 +11,26 @@ auth_bp = Blueprint("auth", __name__)
 @auth_bp.route("/register", methods=["POST"])
 def register():
     data = request.get_json(silent=True) or {}
-
     full_name = data.get("full_name", "").strip()
-    email = data.get("email", "").strip().lower()
-    password = data.get("password", "")
+    email     = data.get("email", "").strip().lower()
+    password  = data.get("password", "")
 
     if not full_name or not email or not password:
-        return jsonify({
-            "error": "full_name, email, and password are required."
-        }), 400
-
+        return jsonify({"error": "full_name, email, and password are required."}), 400
     if User.query.filter_by(email=email).first():
-        return jsonify({
-            "error": "Email already registered."
-        }), 409
+        return jsonify({"error": "Email already registered."}), 409
 
-    password_hash = bcrypt.hashpw(
-        password.encode(),
-        bcrypt.gensalt()
-    ).decode()
-
-    user = User(
-        full_name=full_name,
-        email=email,
-        password_hash=password_hash
-    )
-
+    password_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    user = User(full_name=full_name, email=email, password_hash=password_hash)
     db.session.add(user)
     db.session.commit()
-
-    return jsonify({
-        "user_id": user.user_id,
-        "message": "Registration successful."
-    }), 201
+    return jsonify({"user_id": user.user_id, "message": "Registration successful."}), 201
 
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
-    data = request.get_json(silent=True) or {}
-    email = data.get("email", "").strip().lower()
+    data     = request.get_json(silent=True) or {}
+    email    = data.get("email", "").strip().lower()
     password = data.get("password", "")
 
     if not email or not password:
@@ -73,115 +42,65 @@ def login():
 
     profile = user.profile
     return jsonify({
-        "user_id": user.user_id,
-        "full_name": user.full_name,
-        "has_profile": profile is not None,
+        "user_id":       user.user_id,
+        "full_name":     user.full_name,
+        "has_profile":   profile is not None,
         "persona_label": profile.persona_label if profile else None,
-        "budget_type": profile.budget_type if profile else None,
+        "budget_type":   profile.budget_type if profile else None,
     }), 200
 
 
 @auth_bp.route("/onboarding", methods=["POST"])
 def onboarding():
-    data = request.get_json(silent=True) or {}
-
-    user_id = data.get("user_id")
-    budget_type = str(data.get("budget_type", "")).strip().lower()
+    data         = request.get_json(silent=True) or {}
+    user_id      = data.get("user_id")
+    budget_type  = str(data.get("budget_type", "")).strip().lower()
     weather_pref = str(data.get("weather_pref", "")).strip().lower()
-    interests = data.get("interests", [])
+    interests    = data.get("interests", [])
 
     if not user_id:
-        return jsonify({
-            "error": "user_id is required."
-        }), 400
-
+        return jsonify({"error": "user_id is required."}), 400
     if budget_type not in BUDGET_OPTIONS:
-        return jsonify({
-            "error": f"budget_type must be one of {BUDGET_OPTIONS}"
-        }), 400
-
+        return jsonify({"error": f"budget_type must be one of {BUDGET_OPTIONS}"}), 400
     if weather_pref not in WEATHER_OPTIONS:
-        return jsonify({
-            "error": f"weather_pref must be one of {WEATHER_OPTIONS}"
-        }), 400
+        return jsonify({"error": f"weather_pref must be one of {WEATHER_OPTIONS}"}), 400
+    if not isinstance(interests, list) or not interests:
+        return jsonify({"error": "interests must be a non-empty list."}), 400
 
-    if not isinstance(interests, list) or len(interests) == 0:
-        return jsonify({
-            "error": "interests must be a non-empty list."
-        }), 400
-
-    interests = [
-        str(interest).strip().lower()
-        for interest in interests
-        if str(interest).strip()
-    ]
-
-    if not interests:
-        return jsonify({
-            "error": "interests must be a non-empty list."
-        }), 400
-
-    invalid_interests = [
-        interest
-        for interest in interests
-        if interest not in INTEREST_OPTIONS
-    ]
-
-    if invalid_interests:
-        return jsonify({
-            "error": f"Invalid interests: {invalid_interests}"
-        }), 400
+    interests = [str(i).strip().lower() for i in interests if str(i).strip()]
+    invalid   = [i for i in interests if i not in INTEREST_OPTIONS]
+    if invalid:
+        return jsonify({"error": f"Invalid interests: {invalid}"}), 400
 
     user = User.query.get(user_id)
-
     if not user:
-        return jsonify({
-            "error": "User not found."
-        }), 404
+        return jsonify({"error": "User not found."}), 404
 
     try:
-        persona = assign_persona(
-            budget_type,
-            weather_pref,
-            interests
-        )
+        persona = assign_persona(budget_type, weather_pref, interests)
     except FileNotFoundError as e:
-        return jsonify({
-            "error": str(e)
-        }), 500
+        return jsonify({"error": str(e)}), 500
 
-    interests_str = ",".join(interests)
-
-    profile = UserProfile.query.filter_by(
-        user_id=user_id
-    ).first()
-
+    profile = UserProfile.query.filter_by(user_id=user_id).first()
     if profile:
-        profile.budget_type = budget_type
+        profile.budget_type  = budget_type
         profile.weather_pref = weather_pref
-        profile.interests = interests_str
+        profile.interests    = ",".join(interests)
         profile.persona_label = persona
     else:
         profile = UserProfile(
-            user_id=user_id,
-            budget_type=budget_type,
-            weather_pref=weather_pref,
-            interests=interests_str,
+            user_id=user_id, budget_type=budget_type,
+            weather_pref=weather_pref, interests=",".join(interests),
             persona_label=persona,
         )
         db.session.add(profile)
 
     db.session.commit()
-
-    return jsonify({
-        "persona_label": persona,
-        "profile": profile.to_dict()
-    }), 200
+    return jsonify({"persona_label": persona, "profile": profile.to_dict()}), 200
 
 
 @auth_bp.route("/<int:user_id>/profile", methods=["GET"])
 def get_profile(user_id):
-    """GET /api/users/<id>/profile — fetch current user profile."""
     user = User.query.get(user_id)
     if not user:
         return jsonify({"error": "User not found."}), 404
@@ -193,9 +112,7 @@ def get_profile(user_id):
 
 @auth_bp.route("/<int:user_id>/preferences", methods=["PATCH"])
 def update_preferences(user_id):
-    """PATCH /api/users/<id>/preferences — update individual preference fields from chatbot."""
     data = request.get_json(silent=True) or {}
-
     user = User.query.get(user_id)
     if not user:
         return jsonify({"error": "User not found."}), 404
@@ -226,20 +143,10 @@ def update_preferences(user_id):
         interests = data["interests"]
         if not isinstance(interests, list) or not interests:
             return jsonify({"error": "interests must be a non-empty list."}), 400
-        interests = [
-            str(interest).strip().lower()
-            for interest in interests
-            if str(interest).strip()
-        ]
-        if not interests:
-            return jsonify({"error": "interests must be a non-empty list."}), 400
-        invalid_interests = [
-            interest
-            for interest in interests
-            if interest not in INTEREST_OPTIONS
-        ]
-        if invalid_interests:
-            return jsonify({"error": f"Invalid interests: {invalid_interests}"}), 400
+        interests = [str(i).strip().lower() for i in interests if str(i).strip()]
+        invalid   = [i for i in interests if i not in INTEREST_OPTIONS]
+        if invalid:
+            return jsonify({"error": f"Invalid interests: {invalid}"}), 400
         profile.interests = ",".join(dict.fromkeys(interests))
         changed = True
 
@@ -259,9 +166,7 @@ def update_preferences(user_id):
     if changed:
         try:
             profile.persona_label = assign_persona(
-                profile.budget_type,
-                profile.weather_pref,
-                profile.interests_list(),
+                profile.budget_type, profile.weather_pref, profile.interests_list()
             )
         except FileNotFoundError as e:
             return jsonify({"error": str(e)}), 500

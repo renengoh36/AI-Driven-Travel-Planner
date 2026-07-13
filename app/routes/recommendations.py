@@ -1,5 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app, Response, abort, redirect
 import requests as http_requests
+import os
+import sys
 from app.models.db import db
 from sqlalchemy import or_ as sql_or
 from app.models.user import User
@@ -7,16 +9,13 @@ from app.models.attraction import Attraction
 from app.modules.recommendation import recommend_attractions
 from app.modules.behaviour import get_behaviour_weights, log_event
 
-import sys
-import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 import fetch_attractions
 
 rec_bp = Blueprint("recommendations", __name__)
 
 
-def _query_by_destination(destination: str):
-    """Search attractions by city name OR country name (case-insensitive)."""
+def _query_by_destination(destination):
     return Attraction.query.filter(
         sql_or(
             Attraction.city.ilike(f"%{destination}%"),
@@ -25,7 +24,7 @@ def _query_by_destination(destination: str):
     ).all()
 
 
-def _cache_attractions_for_city(city: str) -> int:
+def _cache_attractions_for_city(city):
     api_key = current_app.config.get("GOOGLE_API_KEY", "")
     if not api_key:
         return 0
@@ -42,19 +41,13 @@ def _cache_attractions_for_city(city: str) -> int:
 
         exists = Attraction.query.filter_by(name=r["name"], city=r["city"]).first()
         if not exists:
-            att = Attraction(
-                name=r["name"],
-                city=r["city"],
-                country=r["country"],
-                category=r["category"],
-                rating=r["rating"],
-                entry_cost=r["entry_cost"],
-                popularity_score=r["popularity_score"],
-                latitude=r["latitude"],
-                longitude=r["longitude"],
+            db.session.add(Attraction(
+                name=r["name"], city=r["city"], country=r["country"],
+                category=r["category"], rating=r["rating"],
+                entry_cost=r["entry_cost"], popularity_score=r["popularity_score"],
+                latitude=r["latitude"], longitude=r["longitude"],
                 photo_reference=photo_ref,
-            )
-            db.session.add(att)
+            ))
             new_count += 1
         elif exists.photo_reference is None and photo_ref:
             exists.photo_reference = photo_ref
@@ -81,13 +74,12 @@ def get_recommendations():
 
     attractions_db = _query_by_destination(destination)
 
-    # Deduplicate by name+city (guard against duplicate DB rows)
-    seen_keys = set()
-    unique_db = []
+    # Deduplicate by name+city
+    seen, unique_db = set(), []
     for a in attractions_db:
-        key = (a.name.strip().lower(), (a.city or '').strip().lower())
-        if key not in seen_keys:
-            seen_keys.add(key)
+        key = (a.name.strip().lower(), (a.city or "").strip().lower())
+        if key not in seen:
+            seen.add(key)
             unique_db.append(a)
     attractions_db = unique_db
 
@@ -95,52 +87,34 @@ def get_recommendations():
         try:
             added = _cache_attractions_for_city(destination)
             if added == 0:
-                return jsonify({"error": f"No attractions found for '{destination}'. Try a specific city name (e.g. 'Berlin' instead of 'Germany')."}), 404
+                return jsonify({"error": f"No attractions found for '{destination}'."}), 404
             attractions_db = _query_by_destination(destination)
         except Exception as e:
             return jsonify({"error": f"Could not fetch attractions: {str(e)}"}), 500
 
-    # ── Behaviour: log this search event ─────────────────────────────────
     try:
-        log_event(
-            user_id=int(user_id),
-            event_type="search",
-            db_session=db.session,
-            destination=destination,
-        )
+        log_event(user_id=int(user_id), event_type="search",
+                  db_session=db.session, destination=destination)
     except Exception:
-        pass   # never block a search because of a logging failure
+        pass
 
     user_profile = user.profile.to_dict()
-    user_profile["user_id"] = int(user_id)   # needed by CF module
-
-    # Only include attractions that have a photo (Google ref or manual URL)
-    attractions  = [a.to_dict() for a in attractions_db if a.photo_reference or a.photo_url]
-
-    # ── Load behaviour weights for behaviour-aware cosine similarity ──────
+    user_profile["user_id"] = int(user_id)
+    attractions = [a.to_dict() for a in attractions_db if a.photo_reference or a.photo_url]
     bw = get_behaviour_weights(int(user_id), db.session)
 
     ranked = recommend_attractions(
-        user_profile=user_profile,
-        attractions=attractions,
-        db_session=db.session,
-        budget_limit=budget,
-        top_n=30,
-        behaviour_weights=bw or None,
-        use_cf=True,
+        user_profile=user_profile, attractions=attractions,
+        db_session=db.session, budget_limit=budget,
+        top_n=30, behaviour_weights=bw or None, use_cf=True,
     )
-
     return jsonify({"destination": destination, "recommendations": ranked}), 200
 
 
 @rec_bp.route("/photo", methods=["GET"])
 def proxy_photo():
-    """GET /api/photo?ref=<photo_reference>&w=<width>
-    Proxies Google Places Photo API so the API key is never exposed to the browser.
-    """
     ref = request.args.get("ref", "").strip()
     w   = request.args.get("w", "600")
-
     if not ref:
         abort(400)
 
@@ -152,19 +126,12 @@ def proxy_photo():
         f"https://maps.googleapis.com/maps/api/place/photo"
         f"?maxwidth={w}&photo_reference={ref}&key={api_key}"
     )
-
     try:
-        # Google Places Photo returns a 302 redirect to the actual image CDN URL.
-        # Don't follow it — just grab the Location header and redirect the browser
-        # there directly, avoiding the proxy downloading the full image content.
         resp = http_requests.get(google_url, timeout=8, allow_redirects=False)
         if resp.status_code in (301, 302, 303, 307, 308):
             return redirect(resp.headers["Location"])
         if resp.status_code == 200:
-            return Response(
-                resp.content,
-                content_type=resp.headers.get("Content-Type", "image/jpeg"),
-            )
+            return Response(resp.content, content_type=resp.headers.get("Content-Type", "image/jpeg"))
         abort(404)
     except Exception:
         abort(502)
@@ -172,33 +139,23 @@ def proxy_photo():
 
 @rec_bp.route("/cities", methods=["GET"])
 def get_cities():
-    """Return distinct (city, country) pairs available in the DB, optionally filtered by country."""
     country = request.args.get("country", "").strip()
     if country:
         rows = (
             db.session.query(Attraction.city, Attraction.country)
             .filter(Attraction.country.ilike(f"%{country}%"))
-            .distinct()
-            .order_by(Attraction.city)
-            .all()
+            .distinct().order_by(Attraction.city).all()
         )
     else:
         rows = (
             db.session.query(Attraction.city, Attraction.country)
-            .distinct()
-            .order_by(Attraction.country, Attraction.city)
-            .all()
+            .distinct().order_by(Attraction.country, Attraction.city).all()
         )
-    cities = [{"city": r[0], "country": r[1]} for r in rows]
-    return jsonify({"cities": cities}), 200
+    return jsonify({"cities": [{"city": r[0], "country": r[1]} for r in rows]}), 200
 
 
 @rec_bp.route("/recommendations/persona", methods=["GET"])
 def persona_recommendations():
-    """
-    Return top 24 attractions across all cities ranked for the user's persona.
-    Uses behaviour-aware cosine similarity and collaborative filtering.
-    """
     user_id = request.args.get("user_id")
     if not user_id:
         return jsonify({"error": "user_id required"}), 400
@@ -217,18 +174,12 @@ def persona_recommendations():
 
     user_profile = user.profile.to_dict()
     user_profile["user_id"] = user_id
-    attractions  = [a.to_dict() for a in attractions_db if a.photo_reference or a.photo_url]
-
+    attractions = [a.to_dict() for a in attractions_db if a.photo_reference or a.photo_url]
     bw = get_behaviour_weights(user_id, db.session)
 
     ranked = recommend_attractions(
-        user_profile=user_profile,
-        attractions=attractions,
-        db_session=db.session,
-        top_n=24,
-        behaviour_weights=bw or None,
-        use_cf=True,
+        user_profile=user_profile, attractions=attractions,
+        db_session=db.session, top_n=24,
+        behaviour_weights=bw or None, use_cf=True,
     )
     return jsonify({"recommendations": ranked}), 200
-
-
