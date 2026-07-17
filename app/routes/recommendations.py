@@ -16,10 +16,11 @@ rec_bp = Blueprint("recommendations", __name__)
 
 
 def _query_by_destination(destination):
+    resolved = _COUNTRY_ALIASES.get(destination.lower(), destination)
     return Attraction.query.filter(
         sql_or(
             Attraction.city.ilike(f"%{destination}%"),
-            Attraction.country.ilike(f"%{destination}%"),
+            Attraction.country.ilike(f"%{resolved}%"),
         )
     ).all()
 
@@ -137,13 +138,22 @@ def proxy_photo():
         abort(502)
 
 
+_COUNTRY_ALIASES = {
+    "turkey": "Türkiye", "turkiye": "Türkiye",
+    "uae": "United Arab Emirates", "emirates": "United Arab Emirates",
+    "usa": "United States", "us": "United States", "america": "United States",
+    "uk": "United Kingdom", "britain": "United Kingdom", "england": "United Kingdom",
+    "korea": "South Korea",
+}
+
 @rec_bp.route("/cities", methods=["GET"])
 def get_cities():
     country = request.args.get("country", "").strip()
     if country:
+        resolved = _COUNTRY_ALIASES.get(country.lower(), country)
         rows = (
             db.session.query(Attraction.city, Attraction.country)
-            .filter(Attraction.country.ilike(f"%{country}%"))
+            .filter(Attraction.country.ilike(f"%{resolved}%"))
             .distinct().order_by(Attraction.city).all()
         )
     else:

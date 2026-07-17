@@ -215,8 +215,8 @@
                         <option>Italy</option><option>Japan</option><option>Malaysia</option>
                         <option>New Zealand</option><option>Singapore</option><option>South Korea</option>
                         <option>Spain</option><option>Taiwan</option><option>Thailand</option>
-                        <option>Turkey</option><option>UAE</option><option>United Kingdom</option>
-                        <option>USA</option><option>Vietnam</option>
+                        <option value="Türkiye">Turkey</option><option value="United Arab Emirates">UAE</option><option>United Kingdom</option>
+                        <option value="United States">USA</option><option>Vietnam</option>
                     </select>
                 </div>
                 <div>
@@ -269,6 +269,23 @@
                 <button class="f-pill" data-price="low" onclick="setFilter('price','low',this)">Under RM15</button>
                 <button class="f-pill" data-price="mid" onclick="setFilter('price','mid',this)">RM15 – RM30</button>
                 <button class="f-pill" data-price="high" onclick="setFilter('price','high',this)">RM30+</button>
+            </div>
+            <div class="f-sep"></div>
+            <span class="f-label">Rating</span>
+            <div class="f-pills" id="rating-pills">
+                <button class="f-pill active" data-rating="0" onclick="setFilter('rating','0',this)">Any</button>
+                <button class="f-pill" data-rating="3" onclick="setFilter('rating','3',this)">3★+</button>
+                <button class="f-pill" data-rating="4" onclick="setFilter('rating','4',this)">4★+</button>
+                <button class="f-pill" data-rating="4.5" onclick="setFilter('rating','4.5',this)">4.5★+</button>
+            </div>
+            <div class="f-sep"></div>
+            <span class="f-label">Sort</span>
+            <div class="f-pills" id="sort-pills">
+                <button class="f-pill active" data-sort="score" onclick="setSort('score',this)">Best Match</button>
+                <button class="f-pill" data-sort="rating" onclick="setSort('rating',this)">Top Rated</button>
+                <button class="f-pill" data-sort="price_asc" onclick="setSort('price_asc',this)">Price ↑</button>
+                <button class="f-pill" data-sort="price_desc" onclick="setSort('price_desc',this)">Price ↓</button>
+                <button class="f-pill" data-sort="pop" onclick="setSort('pop',this)">Popular</button>
             </div>
         </div>
     </div>
@@ -414,7 +431,7 @@ const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replac
 
 // ── STATE ──
 let allRecs = [], filtered = [], selectedIds = new Set(), _personaRecs = [];
-let activeCat = '', activePrice = '';
+let activeCat = '', activePrice = '', activeRating = 0, activeSort = 'score';
 let availableCities = [], selectedCities = new Set();
 
 // ── SESSION CACHE (5-min TTL stops repeated slow ML calls) ──
@@ -542,8 +559,14 @@ async function fetchCityRecs(city) {
 
 // ── FILTERS ──
 function setFilter(type, val, btn) {
-    if (type==='cat') { activeCat=val; document.querySelectorAll('#cat-pills .f-pill').forEach(b=>b.classList.toggle('active',b.dataset.cat===val)); }
-    if (type==='price') { activePrice=val; document.querySelectorAll('#price-pills .f-pill').forEach(b=>b.classList.toggle('active',b.dataset.price===val)); }
+    if (type==='cat')    { activeCat=val;              document.querySelectorAll('#cat-pills .f-pill').forEach(b=>b.classList.toggle('active',b.dataset.cat===val)); }
+    if (type==='price')  { activePrice=val;            document.querySelectorAll('#price-pills .f-pill').forEach(b=>b.classList.toggle('active',b.dataset.price===val)); }
+    if (type==='rating') { activeRating=parseFloat(val)||0; document.querySelectorAll('#rating-pills .f-pill').forEach(b=>b.classList.toggle('active',b.dataset.rating===val)); }
+    applyFilters();
+}
+function setSort(val, btn) {
+    activeSort = val;
+    document.querySelectorAll('#sort-pills .f-pill').forEach(b=>b.classList.toggle('active',b.dataset.sort===val));
     applyFilters();
 }
 function priceMatch(cost,f) {
@@ -558,9 +581,16 @@ function applyFilters() {
     filtered = allRecs.filter(r => {
         if (activeCat && r.category !== activeCat) return false;
         if (!priceMatch(r.entry_cost, activePrice)) return false;
+        if (activeRating > 0 && (r.rating == null || r.rating < activeRating)) return false;
         return true;
     });
+    if (activeSort === 'rating')     filtered.sort((a,b)=>(b.rating||0)-(a.rating||0));
+    else if (activeSort === 'price_asc')  filtered.sort((a,b)=>(a.entry_cost||0)-(b.entry_cost||0));
+    else if (activeSort === 'price_desc') filtered.sort((a,b)=>(b.entry_cost||0)-(a.entry_cost||0));
+    else if (activeSort === 'pop')   filtered.sort((a,b)=>(b.popularity_score||0)-(a.popularity_score||0));
+    // 'score' → already sorted by recommendation_score desc from API
     document.getElementById('result-count').textContent = filtered.length;
+    document.getElementById('result-count-wrap').style.display = 'inline-block';
     renderGrid();
 }
 
