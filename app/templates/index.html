@@ -16,8 +16,8 @@
 .pub-nav.scrolled { background: rgba(15,23,42,.96); box-shadow: 0 2px 20px rgba(0,0,0,.3); }
 .pub-nav-logo { font-size: 2.8rem; font-weight: 900; color: #fff; text-decoration: none; transition: color .3s; display:flex; align-items:center; gap:.8rem; }
 .pub-nav.scrolled .pub-nav-logo { color: #fff; }
-.pub-nav-logo .logo-wm { color: inherit; }
-.pub-nav-logo .logo-go { color: var(--pengo-amber); }
+.pub-nav-logo .logo-wm { color: #93c5fd; }   /* soft blue on dark nav */
+.pub-nav-logo .logo-go { color: #f97316; }   /* vibrant orange */
 .pub-nav-logo img { height: 3.2rem; width: auto; display: none; }
 .pub-nav-logo img.loaded { display: block; }
 .pub-nav-links { display: flex; align-items: center; gap: 3.2rem; }
@@ -263,7 +263,7 @@
         <div style="flex:0 0 30rem;">
             <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:1.2rem;">
                 <img src="{{ url_for('static', filename='images/logo.png') }}" alt="" style="height:3rem;width:auto;display:none;" onload="this.style.display='block'">
-                <div style="font-size:3rem;font-weight:900;color:#fff;">Pen<span style="color:#f59e0b;">go</span></div>
+                <div style="font-size:3rem;font-weight:900;"><span style="color:#60a5fa;">Pen</span><span style="color:#f97316;">go</span></div>
             </div>
             <p style="font-size:1.5rem;line-height:1.75;color:#64748b;margin-bottom:.8rem;">Smart travel planning, personalised to you. Discover any city with recommendations that match your style.</p>
             <a href="mailto:pengo@gmail.com" style="font-size:1.4rem;color:#60a5fa;text-decoration:none;">pengo@gmail.com</a>

@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Pengo — Smart Travel Planning{% endblock %}</title>
-    <!-- SVG favicon — always shows, no file needed -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232563eb'/%3E%3Ctext x='32' y='46' font-family='Arial Black,sans-serif' font-size='36' font-weight='900' fill='%23fff' text-anchor='middle'%3EP%3C/text%3E%3C/svg%3E">
+    <!-- SVG favicon — blue background, white P, orange accent dot -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%232563eb'/%3E%3Ctext x='30' y='47' font-family='Arial Black,sans-serif' font-size='36' font-weight='900' fill='%23fff' text-anchor='middle'%3EP%3C/text%3E%3Ccircle cx='50' cy='14' r='9' fill='%23f97316'/%3E%3C/svg%3E">
 
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 
@@ -81,8 +81,13 @@
             padding: 2.2rem 2rem 2.2rem 2.4rem;
             background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
         }
-        .sidebar-logo { font-size: 2.4rem; font-weight: 900; color: #fff; text-decoration: none; letter-spacing: -.02em; }
-        .sidebar-logo span { color: var(--pengo-amber); }
+        /* ── PENGO WORDMARK COLOURS (blue + orange) ── */
+        .wm-pen { color: #60a5fa; }   /* light blue — works on dark backgrounds */
+        .wm-go  { color: #f97316; }   /* vibrant orange */
+
+        .sidebar-logo { font-size: 2.4rem; font-weight: 900; text-decoration: none; letter-spacing: -.02em; }
+        .sidebar-logo .wm-pen { color: #dbeafe; }   /* soft blue-white on blue sidebar bg */
+        .sidebar-logo .wm-go  { color: #fb923c; }   /* warm orange */
         .sidebar-close { background: rgba(255,255,255,.15); border: none; color: #fff; border-radius: .6rem; width: 3.2rem; height: 3.2rem; font-size: 1.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .2s; }
         .sidebar-close:hover { background: rgba(255,255,255,.3); }
 
@@ -140,7 +145,6 @@
         }
         body.app-page .app-topbar { display: flex; }
         .topbar-logo { font-size: 2rem; font-weight: 900; color: #fff; text-decoration: none; white-space: nowrap; display:flex; align-items:center; gap:.6rem; }
-        .topbar-logo span { color: var(--pengo-amber); }
         .topbar-logo img { height: 3rem; width: auto; display: none; }
         .topbar-logo img.loaded { display: block; }
         .topbar-search {
@@ -175,13 +179,13 @@
         .chatbot-fab {
             position: fixed; z-index: 500;
             width: 5.6rem; height: 5.6rem; border-radius: 50%;
-            background: linear-gradient(135deg, var(--pengo-blue), #7c3aed);
+            background: linear-gradient(135deg, var(--pengo-blue), #f97316);
             border: none; cursor: grab; box-shadow: 0 4px 20px rgba(37,99,235,0.4);
             display: flex; align-items: center; justify-content: center;
             transition: box-shadow .2s;
             user-select: none;
         }
-        .chatbot-fab:hover { box-shadow: 0 6px 28px rgba(37,99,235,0.5); }
+        .chatbot-fab:hover { box-shadow: 0 6px 28px rgba(249,115,22,0.45); }
         .chatbot-fab.dragging { cursor: grabbing; transform: scale(1.08); }
         .chatbot-fab svg { width: 2.6rem; height: 2.6rem; fill: none; stroke: #fff; stroke-width: 2; }
         .chatbot-badge {
@@ -206,7 +210,7 @@
         .chatbot-panel.open { transform: translateY(0) scale(1); opacity: 1; pointer-events: all; }
 
         .chatbot-head {
-            background: linear-gradient(135deg, var(--pengo-blue), #7c3aed);
+            background: linear-gradient(135deg, var(--pengo-blue), #f97316);
             padding: 1.8rem 2rem; display: flex; align-items: center; gap: 1.2rem;
         }
         .chatbot-head .bot-avatar { font-size: 2.8rem; }
@@ -224,7 +228,7 @@
         .msg-bot { align-self: flex-start; flex-direction: row; }
         .msg-user { align-self: flex-end; flex-direction: row-reverse; }
         .msg-avatar { width: 2.8rem; height: 2.8rem; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 700; }
-        .msg-bot .msg-avatar { background: linear-gradient(135deg,#2563eb,#7c3aed); color:#fff; }
+        .msg-bot .msg-avatar { background: linear-gradient(135deg,#2563eb,#f97316); color:#fff; }
         .msg-user .msg-avatar { background: linear-gradient(135deg,#059669,#0d9488); color:#fff; }
         .msg-bubble { padding: .9rem 1.3rem; border-radius: 1.4rem; font-size: 1.35rem; line-height: 1.65; }
         .msg-bot .msg-bubble { background: #f1f5f9; color: #1e293b; border-bottom-left-radius: .3rem; }
@@ -260,7 +264,7 @@
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
     <nav class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <a href="/" class="sidebar-logo">Pen<span>go</span></a>
+            <a href="/" class="sidebar-logo"><span class="wm-pen">Pen</span><span class="wm-go">go</span></a>
             <button class="sidebar-close" onclick="closeSidebar()">×</button>
         </div>
         <div class="sidebar-nav">
@@ -320,7 +324,7 @@
     <div class="app-topbar" id="appTopbar">
         <a href="/" class="topbar-logo">
             <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Pengo" onload="this.classList.add('loaded')">
-            <span id="topbar-logo-text">Pen<span style="color:#f59e0b;">go</span></span>
+            <span id="topbar-logo-text"><span class="wm-pen">Pen</span><span class="wm-go">go</span></span>
         </a>
         <div class="topbar-search" id="topbar-search-wrap" style="display:none;">
             <input type="text" id="topbar-dest" placeholder="Search a destination..." onkeydown="if(event.key==='Enter')topbarSearch()">
@@ -340,7 +344,7 @@
     <footer style="background:#0f172a;color:#94a3b8;padding:6rem 0 2rem;">
         <div class="row" style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:4rem;">
             <div>
-                <div style="font-size:2.8rem;font-weight:900;color:#fff;margin-bottom:1.2rem;">Pen<span style="color:#f59e0b;">go</span></div>
+                <div style="font-size:2.8rem;font-weight:900;margin-bottom:1.2rem;"><span class="wm-pen">Pen</span><span class="wm-go">go</span></div>
                 <p style="font-size:1.5rem;line-height:1.7;max-width:32rem;color:#64748b;">Smart travel planning powered by AI. Discover the world your way — personalised, optimised, and beautifully simple.</p>
             </div>
             <div>

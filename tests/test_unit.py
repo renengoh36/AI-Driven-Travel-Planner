@@ -24,8 +24,13 @@ from app.modules.distance import (
     nearest_neighbour_route,
     assign_time_slots,
     EARTH_RADIUS_KM,
-    VISIT_DURATION_MINUTES,
+    VISIT_DURATIONS,
+    DEFAULT_VISIT_DURATION,
     DAY_START_HOUR,
+    MIN_TRAVEL_BUFFER_MINUTES,
+    LUNCH_BREAK_HOUR,
+    LUNCH_BREAK_MIN,
+    LUNCH_DURATION_MINUTES,
 )
 from app.modules.chatbot import (
     tokenise,
@@ -42,8 +47,8 @@ from app.modules.chatbot import (
 #  Helpers
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def _make_attraction(aid, lat, lon, name="Place"):
-    return {"attraction_id": aid, "name": name, "latitude": lat, "longitude": lon}
+def _make_attraction(aid, lat, lon, name="Place", category=""):
+    return {"attraction_id": aid, "name": name, "latitude": lat, "longitude": lon, "category": category}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -141,28 +146,45 @@ class TestNearestNeighbourRoute(unittest.TestCase):
 class TestAssignTimeSlots(unittest.TestCase):
 
     def test_TC10_single_attraction_starts_at_day_start(self):
-        """EP: one attraction on day 1 → start 09:00, end 10:30."""
-        att  = [_make_attraction(1, 3.1, 101.7)]
+        """EP: one attraction, no category → start 09:00, end at DEFAULT_VISIT_DURATION."""
+        att   = [_make_attraction(1, 3.1, 101.7)]
         items = assign_time_slots(att, day_number=1)
         self.assertEqual(len(items), 1)
         self.assertEqual(items[0]["start_time"], datetime.time(DAY_START_HOUR, 0),
                          msg="First attraction must start at 09:00")
-        end_hour     = DAY_START_HOUR + VISIT_DURATION_MINUTES // 60
-        end_min      = VISIT_DURATION_MINUTES % 60
-        expected_end = datetime.time(end_hour, end_min)
-        self.assertEqual(items[0]["end_time"], expected_end,
-                         msg="End time must be start + 90 min")
+        end_hour = DAY_START_HOUR + DEFAULT_VISIT_DURATION // 60
+        end_min  = DEFAULT_VISIT_DURATION % 60
+        self.assertEqual(items[0]["end_time"], datetime.time(end_hour, end_min),
+                         msg=f"End time must be start + {DEFAULT_VISIT_DURATION} min")
 
-    def test_TC11_three_attractions_sequential_times(self):
-        """EP: 3 attractions → times chained consecutively."""
+    def test_TC11_travel_buffer_and_lunch_break_inserted(self):
+        """EP: 3 attractions across midday → travel gap between each, lunch break at 12:30.
+
+        Attractions 1.11 km apart (0.01° lat) → travel = MIN_TRAVEL_BUFFER_MINUTES = 15 min.
+        Timeline:
+          09:00–10:30  Attr 0  (90 min, no category)
+          10:45–12:15  Attr 1  (+ 15 min travel)
+          13:30–15:00  Attr 2  (+ 15 min travel reaches 12:30 → 60 min lunch → 13:30)
+        """
         atts  = [_make_attraction(i, 3.0 + i * 0.01, 101.0) for i in range(3)]
         items = assign_time_slots(atts, day_number=1)
         self.assertEqual(len(items), 3)
-        # Second attraction starts where first ends
-        self.assertEqual(items[1]["start_time"], items[0]["end_time"],
-                         msg="Second attraction must start exactly when first ends")
-        self.assertEqual(items[2]["start_time"], items[1]["end_time"],
-                         msg="Third attraction must start exactly when second ends")
+
+        # Attr 0: 09:00 → 10:30
+        self.assertEqual(items[0]["start_time"], datetime.time(9, 0))
+        self.assertEqual(items[0]["end_time"],   datetime.time(10, 30))
+
+        # Attr 1: 10:30 + MIN_TRAVEL_BUFFER(15 min) = 10:45 → 12:15
+        expected_start1 = datetime.time(10, 30 + MIN_TRAVEL_BUFFER_MINUTES)
+        self.assertEqual(items[1]["start_time"], expected_start1,
+                         msg="Second attraction must be offset by travel buffer")
+
+        # Attr 2: 12:15 + 15 travel = 12:30 → lunch +60 = 13:30 → 15:00
+        total_lunch_min = LUNCH_BREAK_MIN + LUNCH_DURATION_MINUTES
+        lunch_end = datetime.time(LUNCH_BREAK_HOUR + total_lunch_min // 60, total_lunch_min % 60)
+        self.assertEqual(items[2]["start_time"], lunch_end,
+                         msg="Third attraction delayed by travel buffer + lunch break")
+        self.assertEqual(items[2]["end_time"],   datetime.time(15, 0))
 
     def test_TC12_day_number_and_visit_order_correct(self):
         """BVA: day_number is passed through; visit_order starts at 1."""
@@ -174,6 +196,24 @@ class TestAssignTimeSlots(unittest.TestCase):
         self.assertEqual(items[0]["visit_order"], 1)
         self.assertEqual(items[1]["visit_order"], 2,
                          msg="visit_order must increment from visit_order_start")
+
+    def test_TC_category_visit_durations(self):
+        """EP: category-specific durations — history=120 min, food=60 min."""
+        history_att = [_make_attraction(1, 3.0, 101.0, category="history")]
+        food_att    = [_make_attraction(2, 3.0, 101.0, category="food")]
+
+        history_items = assign_time_slots(history_att, day_number=1)
+        food_items    = assign_time_slots(food_att,    day_number=1)
+
+        expected_history_end = datetime.time(DAY_START_HOUR + VISIT_DURATIONS["history"] // 60,
+                                             VISIT_DURATIONS["history"] % 60)
+        expected_food_end    = datetime.time(DAY_START_HOUR + VISIT_DURATIONS["food"] // 60,
+                                             VISIT_DURATIONS["food"] % 60)
+
+        self.assertEqual(history_items[0]["end_time"], expected_history_end,
+                         msg="history attraction should get 120 min visit")
+        self.assertEqual(food_items[0]["end_time"], expected_food_end,
+                         msg="food attraction should get 60 min visit")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
