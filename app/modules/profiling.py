@@ -9,13 +9,20 @@ BUDGET_OPTIONS  = ["budget", "mid-range", "luxury"]
 WEATHER_OPTIONS = ["warm", "cold", "moderate"]
 INTEREST_OPTIONS = ["nature", "food", "history", "shopping", "adventure", "relaxation"]
 
+# Labels derived from inspecting cluster centres (budget×3 + weather×3 + interests×6)
+# Cluster 0: mid-range, moderate/cold, top-interest=nature
+# Cluster 1: budget,    warm,          top-interest=shopping/adventure
+# Cluster 2: mid-range, warm,          top-interest=history/food
+# Cluster 3: budget,    moderate,      top-interest=food
+# Cluster 4: luxury/budget, cold,      top-interest=shopping
+# Cluster 5: luxury,    warm,          top-interest=food/history
 PERSONA_LABELS = {
-    0: "Budget Nature Explorer",
-    1: "Luxury Culture Enthusiast",
-    2: "Adventure Seeker",
+    0: "Nature Explorer",
+    1: "Budget Adventure Seeker",
+    2: "Culture & History Explorer",
     3: "Relaxation & Foodie",
-    4: "History & Heritage Buff",
-    5: "Urban Shopping Explorer",
+    4: "Urban Shopping Explorer",
+    5: "Luxury Culture Enthusiast",
 }
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "data", "kmeans_model.pkl")
