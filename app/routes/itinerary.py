@@ -32,7 +32,7 @@ def generate_itinerary():
             "error": "user_id, destination, attraction_ids, and travel_days are required."
         }), 400
 
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if not user:
         return jsonify({"error": "User not found."}), 404
 
@@ -169,7 +169,7 @@ def get_my_itineraries():
 @itinerary_bp.route("/<int:itinerary_id>", methods=["GET"])
 def get_itinerary(itinerary_id):
     """GET /api/itinerary/<id> — fetch a saved itinerary with all items."""
-    itinerary = Itinerary.query.get(itinerary_id)
+    itinerary = db.session.get(Itinerary, itinerary_id)
     if not itinerary:
         return jsonify({"error": "Itinerary not found."}), 404
 
@@ -214,7 +214,7 @@ def dislike_attraction(itinerary_id):
     if not user_id or not attraction_id:
         return jsonify({"error": "user_id and attraction_id required"}), 400
 
-    itinerary = Itinerary.query.get(itinerary_id)
+    itinerary = db.session.get(Itinerary, itinerary_id)
     if not itinerary:
         return jsonify({"error": "Itinerary not found"}), 404
 
@@ -241,7 +241,7 @@ def dislike_attraction(itinerary_id):
 
     # Find a replacement: same city + same category, not already in itinerary,
     # not previously disliked by this user
-    disliked_att = Attraction.query.get(int(attraction_id))
+    disliked_att = db.session.get(Attraction, int(attraction_id))
     replacement  = None
 
     if disliked_att:
@@ -278,7 +278,7 @@ def dislike_attraction(itinerary_id):
 
     day_att_dicts = []
     for item in day_items:
-        att = Attraction.query.get(item.attraction_id)
+        att = db.session.get(Attraction, item.attraction_id)
         if att:
             day_att_dicts.append(att.to_dict())
 
@@ -354,7 +354,7 @@ def rate_itinerary(itinerary_id):
     if not (1 <= int(rating_score) <= 5):
         return jsonify({"error": "rating_score must be between 1 and 5."}), 400
 
-    itinerary = Itinerary.query.get(itinerary_id)
+    itinerary = db.session.get(Itinerary, itinerary_id)
     if not itinerary:
         return jsonify({"error": "Itinerary not found."}), 404
 
@@ -374,7 +374,7 @@ def rate_itinerary(itinerary_id):
         items_for_rating = itinerary.items
         seen_cats = set()
         for it_item in items_for_rating:
-            att = Attraction.query.get(it_item.attraction_id)
+            att = db.session.get(Attraction, it_item.attraction_id)
             if att and att.category not in seen_cats:
                 seen_cats.add(att.category)
                 _log(
