@@ -435,11 +435,19 @@ let activeCat = '', activePrice = '', activeRating = 0, activeSort = 'score';
 let availableCities = [], selectedCities = new Set();
 
 // ── SESSION CACHE (5-min TTL stops repeated slow ML calls) ──
-const CACHE_KEY = 'persona_recs_v3';
-const CACHE_TS  = 'persona_recs_ts_v3';
-const CACHE_TTL = 5 * 60 * 1000;
+const CACHE_KEY      = 'persona_recs_v3';
+const CACHE_TS       = 'persona_recs_ts_v3';
+const CACHE_PERSONA  = 'persona_recs_persona_v3';
+const CACHE_TTL      = 5 * 60 * 1000;
 
 async function loadPersonaRecs() {
+    // Bust cache if persona label changed (e.g. after preferences update)
+    const cachedPersona = sessionStorage.getItem(CACHE_PERSONA);
+    if (cachedPersona && persona && cachedPersona !== persona) {
+        sessionStorage.removeItem(CACHE_KEY);
+        sessionStorage.removeItem(CACHE_TS);
+        sessionStorage.removeItem(CACHE_PERSONA);
+    }
     // Use cache on return visits — instant render
     const cached = sessionStorage.getItem(CACHE_KEY);
     const cacheTs = parseInt(sessionStorage.getItem(CACHE_TS) || '0');
@@ -462,6 +470,7 @@ async function loadPersonaRecs() {
             _personaRecs = allRecs.slice();
             sessionStorage.setItem(CACHE_KEY, JSON.stringify(allRecs));
             sessionStorage.setItem(CACHE_TS, Date.now().toString());
+            if (persona) sessionStorage.setItem(CACHE_PERSONA, persona);
             updateHeroStats(); applyFilters();
         } else {
             showEmpty('Search a destination above to discover personalised recommendations.');
