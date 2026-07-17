@@ -9,8 +9,12 @@ from app.models.attraction import Attraction
 from app.modules.recommendation import recommend_attractions
 from app.modules.behaviour import get_behaviour_weights, log_event
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-import fetch_attractions
+try:
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+    import fetch_attractions as _fetch_mod
+    _HAS_FETCH = True
+except ImportError:
+    _HAS_FETCH = False
 
 rec_bp = Blueprint("recommendations", __name__)
 
@@ -26,14 +30,16 @@ def _query_by_destination(destination):
 
 
 def _cache_attractions_for_city(city):
+    if not _HAS_FETCH:
+        return 0
     api_key = current_app.config.get("GOOGLE_API_KEY", "")
     if not api_key:
         return 0
 
     os.environ["GOOGLE_API_KEY"] = api_key
-    fetch_attractions.GOOGLE_API_KEY = api_key
+    _fetch_mod.GOOGLE_API_KEY = api_key
 
-    records = fetch_attractions.build_attraction_records(city_name=city, radius_m=25000)
+    records = _fetch_mod.build_attraction_records(city_name=city, radius_m=25000)
     new_count = 0
     for r in records:
         photo_ref = r.get("photo_reference")

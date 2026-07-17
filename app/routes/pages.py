@@ -48,6 +48,11 @@ def my_trips():
     return render_template("my_trips.html", body_class="app-page")
 
 
+@pages_bp.route("/wishlist")
+def wishlist():
+    return render_template("wishlist.html", body_class="app-page")
+
+
 @pages_bp.route("/about")
 def about():
     return render_template("about.html")

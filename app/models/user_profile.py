@@ -8,10 +8,10 @@ class UserProfile(db.Model):
     profile_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False, unique=True)
     persona_label = db.Column(db.String(100), nullable=True)
-    budget_type = db.Column(db.String(50), nullable=False)      # budget / mid-range / luxury
-    weather_pref = db.Column(db.String(50), nullable=False)     # warm / cold / moderate
-    interests = db.Column(db.Text, nullable=False)              # comma-separated, from onboarding
-    dynamic_interests = db.Column(db.Text, nullable=True)       # reserved for chatbot (Phase 2)
+    budget_type = db.Column(db.String(50), nullable=False)      
+    weather_pref = db.Column(db.String(50), nullable=False)     
+    interests = db.Column(db.Text, nullable=False)              
+    dynamic_interests = db.Column(db.Text, nullable=True)       
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def interests_list(self) -> list:

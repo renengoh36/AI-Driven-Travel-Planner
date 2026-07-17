@@ -105,6 +105,9 @@
 .att-card.selected { border-color:var(--b600); box-shadow:0 0 0 3px rgba(37,99,235,.15),0 8px 32px rgba(37,99,235,.12); }
 .check-badge { position:absolute; top:1rem; right:1rem; z-index:10; width:3rem; height:3rem; border-radius:50%; background:var(--b600); color:#fff; font-size:1.4rem; font-weight:700; display:none; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(37,99,235,.45); }
 .att-card.selected .check-badge { display:flex; }
+.wish-btn { position:absolute; top:1rem; left:1rem; z-index:10; width:3rem; height:3rem; border-radius:50%; background:rgba(255,255,255,.9); border:none; font-size:1.6rem; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,.15); transition:all .15s; line-height:1; }
+.wish-btn:hover { transform:scale(1.15); background:#fff; }
+.wish-btn.wished { color:#ef4444; background:#fff; }
 
 /* ── PHOTO ── */
 .att-photo-wrap { position:relative; height:21rem; overflow:hidden; flex-shrink:0; background:var(--s200); }
@@ -401,6 +404,40 @@
 const userId = localStorage.getItem('user_id');
 if (!userId) window.location.href = '/login';
 
+// ── WISHLIST STATE ──
+const wishedIds = new Set();
+(async () => {
+    try {
+        const r = await fetch(`/api/wishlist/ids?user_id=${userId}`);
+        const d = await r.json();
+        (d.ids || []).forEach(id => wishedIds.add(id));
+    } catch(e) {}
+})();
+
+async function toggleWish(attractionId, btn) {
+    const isWished = wishedIds.has(attractionId);
+    if (isWished) {
+        await fetch(`/api/wishlist/${attractionId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: parseInt(userId) }),
+        });
+        wishedIds.delete(attractionId);
+    } else {
+        await fetch('/api/wishlist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: parseInt(userId), attraction_id: attractionId }),
+        });
+        wishedIds.add(attractionId);
+    }
+    const now = wishedIds.has(attractionId);
+    document.querySelectorAll(`.att-card[data-id="${attractionId}"] .wish-btn`).forEach(b => {
+        b.textContent = now ? '♥' : '♡';
+        b.classList.toggle('wished', now);
+    });
+}
+
 // ── HERO ──
 const userName = localStorage.getItem('user_name') || 'Traveller';
 const persona  = localStorage.getItem('persona') || '';
@@ -627,7 +664,7 @@ function showEmpty(msg) {
 function buildCard(r) {
     const sel    = selectedIds.has(r.attraction_id);
     const g      = CAT_GRADS[r.category] || ['#1e293b','#334155'];
-    const scoreW = Math.round((r.recommendation_score||0)*100);
+    const scoreW = Math.min(98, Math.round((r.recommendation_score||0)*125));
 
     const photoSrc = r.photo_reference
         ? `/api/photo?ref=${encodeURIComponent(r.photo_reference)}&w=600`
@@ -649,6 +686,11 @@ function buildCard(r) {
     card.dataset.id = r.attraction_id;
     card.innerHTML = `
         <div class="check-badge">✓</div>
+        <button class="wish-btn${wishedIds.has(r.attraction_id) ? ' wished' : ''}"
+                onclick="event.stopPropagation();toggleWish(${r.attraction_id},this)"
+                title="Save to Wishlist">
+            ${wishedIds.has(r.attraction_id) ? '♥' : '♡'}
+        </button>
         <div class="att-photo-wrap">
             ${photoHtml}
             <div class="photo-overlay">
@@ -665,6 +707,7 @@ function buildCard(r) {
             <div class="att-rating-row">${starsHtml}</div>
             <div class="att-tags">
                 <span class="att-tag att-tag-free">${r.category ? r.category.charAt(0).toUpperCase() + r.category.slice(1) : ''}</span>
+                <span class="att-tag" style="background:#f0fdf4;color:#15803d;font-weight:700;">${r.entry_cost ? 'RM ' + r.entry_cost.toFixed(0) : 'Free'}</span>
             </div>
             <button class="att-add-btn" onclick="event.stopPropagation();toggleCard(${r.attraction_id})">
                 ${sel ? 'Added to Plan' : 'Add to Plan'}

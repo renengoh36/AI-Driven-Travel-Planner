@@ -7,7 +7,7 @@ Runs Module 4 (Haversine + nearest-neighbour) and persists the result
 as ITINERARIES + ITINERARY_ITEMS rows.
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from app.models.db import db
 from app.models.user import User
 from app.models.attraction import Attraction
@@ -194,6 +194,24 @@ def get_itinerary(itinerary_id):
     }), 200
 
 
+@itinerary_bp.route("/<int:itinerary_id>", methods=["DELETE"])
+def delete_itinerary(itinerary_id):
+    """DELETE /api/itinerary/<id> — remove a saved itinerary (owner only)."""
+    data = request.get_json(silent=True) or {}
+    user_id = data.get("user_id")
+
+    itinerary = db.session.get(Itinerary, itinerary_id)
+    if not itinerary:
+        return jsonify({"error": "Itinerary not found."}), 404
+
+    if str(itinerary.user_id) != str(user_id):
+        return jsonify({"error": "Unauthorized"}), 403
+
+    db.session.delete(itinerary)
+    db.session.commit()
+    return jsonify({"message": "Itinerary deleted."}), 200
+
+
 @itinerary_bp.route("/<int:itinerary_id>/dislike-attraction", methods=["POST"])
 def dislike_attraction(itinerary_id):
     """
@@ -336,6 +354,193 @@ def dislike_attraction(itinerary_id):
         "replaced_with": replacement.name if replacement else None,
         "items": result,
     }), 200
+
+
+@itinerary_bp.route("/<int:itinerary_id>/add-stop", methods=["POST"])
+def add_stop(itinerary_id):
+    """POST /api/itinerary/<id>/add-stop — add an attraction to a day and rebuild schedule."""
+    from app.modules.distance import nearest_neighbour_route, assign_time_slots
+
+    data         = request.get_json(silent=True) or {}
+    user_id      = data.get("user_id")
+    attraction_id = data.get("attraction_id")
+    day_number   = int(data.get("day_number", 1))
+
+    if not user_id or not attraction_id:
+        return jsonify({"error": "user_id and attraction_id required"}), 400
+
+    itinerary = db.session.get(Itinerary, itinerary_id)
+    if not itinerary:
+        return jsonify({"error": "Itinerary not found"}), 404
+    if str(itinerary.user_id) != str(user_id):
+        return jsonify({"error": "Unauthorized"}), 403
+
+    # Prevent duplicate on same day
+    already = ItineraryItem.query.filter_by(
+        itinerary_id=itinerary_id,
+        attraction_id=int(attraction_id),
+        day_number=day_number,
+    ).first()
+    if already:
+        return jsonify({"error": "Already in this day"}), 409
+
+    new_att = db.session.get(Attraction, int(attraction_id))
+    if not new_att:
+        return jsonify({"error": "Attraction not found"}), 404
+
+    # Gather existing attractions for that day + new one
+    day_items = (
+        ItineraryItem.query
+        .filter_by(itinerary_id=itinerary_id, day_number=day_number)
+        .order_by(ItineraryItem.visit_order)
+        .all()
+    )
+    att_dicts = []
+    for item in day_items:
+        a = db.session.get(Attraction, item.attraction_id)
+        if a:
+            att_dicts.append(a.to_dict())
+    att_dicts.append(new_att.to_dict())
+
+    # Delete old day items, rebuild with new stop
+    for item in day_items:
+        db.session.delete(item)
+    db.session.flush()
+
+    optimised = nearest_neighbour_route(att_dicts)
+    rebuilt   = assign_time_slots(optimised, day_number=day_number)
+    for r in rebuilt:
+        db.session.add(ItineraryItem(
+            itinerary_id=itinerary_id,
+            attraction_id=r["attraction_id"],
+            day_number=day_number,
+            visit_order=r["visit_order"],
+            start_time=r["start_time"],
+            end_time=r["end_time"],
+        ))
+
+    # Recalculate cost
+    all_att_ids = [i.attraction_id for i in itinerary.items] + [int(attraction_id)]
+    all_atts = Attraction.query.filter(Attraction.attraction_id.in_(all_att_ids)).all()
+    itinerary.actual_cost = sum(a.entry_cost or 0.0 for a in all_atts)
+    db.session.commit()
+
+    # Return updated day items
+    updated = (
+        ItineraryItem.query
+        .filter_by(itinerary_id=itinerary_id, day_number=day_number)
+        .order_by(ItineraryItem.visit_order)
+        .all()
+    )
+    att_map = {
+        a.attraction_id: a.to_dict()
+        for a in Attraction.query.filter(
+            Attraction.attraction_id.in_([i.attraction_id for i in updated])
+        ).all()
+    }
+    result = []
+    for item in updated:
+        d = item.to_dict()
+        d["attraction"] = att_map.get(item.attraction_id, {})
+        result.append(d)
+
+    return jsonify({"message": "Stop added.", "day": day_number, "items": result}), 200
+
+
+@itinerary_bp.route("/food-nearby", methods=["GET"])
+def food_nearby():
+    """GET /api/itinerary/food-nearby?city=Bangkok — food attractions in the same city."""
+    city = request.args.get("city", "").strip()
+    if not city:
+        return jsonify({"error": "city required"}), 400
+
+    spots = (
+        Attraction.query
+        .filter_by(city=city, category="food")
+        .order_by(Attraction.rating.desc())
+        .limit(8)
+        .all()
+    )
+    return jsonify({"food": [s.to_dict() for s in spots]}), 200
+
+
+@itinerary_bp.route("/packing-list", methods=["POST"])
+def get_packing_list():
+    """POST /api/itinerary/packing-list — AI packing list for a trip."""
+    import os, json as _json
+    data = request.get_json(silent=True) or {}
+    destination = data.get("destination", "").strip()
+    days        = data.get("travel_days", 1)
+    categories  = data.get("categories", [])
+    if not destination:
+        return jsonify({"error": "destination required"}), 400
+
+    api_key = current_app.config.get("GROQ_API_KEY") or os.environ.get("GROQ_API_KEY", "")
+    if not api_key:
+        return jsonify({"error": "AI service unavailable"}), 503
+
+    activities = ", ".join(categories) if categories else "general sightseeing"
+    prompt = (
+        f"Create a practical packing list for a {days}-day trip to {destination}. "
+        f"Activities include: {activities}. "
+        "Return ONLY valid JSON with exactly these keys: "
+        '{"essentials":[],"clothing":[],"toiletries":[],"electronics":[],"activity_specific":[]}. '
+        "5-7 concise items per category. No markdown, no explanation."
+    )
+    try:
+        from groq import Groq
+        client = Groq(api_key=api_key)
+        resp = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3, max_tokens=500,
+        )
+        content = resp.choices[0].message.content.strip()
+        start, end = content.find('{'), content.rfind('}') + 1
+        packing = _json.loads(content[start:end]) if start >= 0 else {}
+        if not any(packing.values()):
+            raise ValueError("Empty response from AI")
+        return jsonify({"packing_list": packing}), 200
+    except Exception:
+        # Fallback: destination-aware template list
+        packing = {
+            "essentials": [
+                "Passport & travel documents",
+                f"Local currency for {destination}",
+                "Travel insurance documents",
+                "Hotel & booking confirmations",
+                "Medications & small first-aid kit",
+            ],
+            "clothing": [
+                "Comfortable walking shoes",
+                "Weather-appropriate outfits",
+                "Light jacket or cardigan",
+                "Socks & underwear (1 per day)",
+                "Sleepwear",
+            ],
+            "toiletries": [
+                "Toothbrush & toothpaste",
+                "Shampoo & conditioner",
+                "Sunscreen SPF 50+",
+                "Deodorant",
+                "Hand sanitiser",
+            ],
+            "electronics": [
+                "Phone & charger",
+                "Portable power bank",
+                "Universal power adapter",
+                "Earphones / earbuds",
+                "Camera (optional)",
+            ],
+            "activity_specific": [
+                "Reusable water bottle",
+                "Small day backpack",
+                "Snacks for travel days",
+                "Offline maps downloaded",
+                "Umbrella or rain poncho",
+            ],
+        }
+        return jsonify({"packing_list": packing, "fallback": True}), 200
 
 
 @itinerary_bp.route("/<int:itinerary_id>/rate", methods=["POST"])

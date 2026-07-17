@@ -113,6 +113,9 @@ body.app-page { padding-top: 6rem; }
     box-shadow: 0 2px 8px rgba(37,99,235,.4);
 }
 .att-card.selected .check-badge { display: flex; }
+.wish-btn { position:absolute; top:1rem; left:1rem; z-index:10; width:2.8rem; height:2.8rem; border-radius:50%; background:rgba(255,255,255,.9); border:none; font-size:1.5rem; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,.15); transition:all .15s; line-height:1; }
+.wish-btn:hover { transform:scale(1.15); background:#fff; }
+.wish-btn.wished { color:#ef4444; background:#fff; }
 .att-photo-wrap {
     position: relative; overflow: hidden;
     height: 20rem; flex-shrink: 0; background: #e2e8f0;
@@ -292,6 +295,40 @@ document.getElementById('topbar-search-wrap').style.display = 'flex';
 const userId = localStorage.getItem('user_id');
 if (!userId) window.location.href = '/login';
 
+// ── WISHLIST STATE ──
+const wishedIds = new Set();
+(async () => {
+    try {
+        const r = await fetch(`/api/wishlist/ids?user_id=${userId}`);
+        const d = await r.json();
+        (d.ids || []).forEach(id => wishedIds.add(id));
+    } catch(e) {}
+})();
+
+async function toggleWish(attractionId, btn) {
+    const isWished = wishedIds.has(attractionId);
+    if (isWished) {
+        await fetch(`/api/wishlist/${attractionId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: parseInt(userId) }),
+        });
+        wishedIds.delete(attractionId);
+    } else {
+        await fetch('/api/wishlist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: parseInt(userId), attraction_id: attractionId }),
+        });
+        wishedIds.add(attractionId);
+    }
+    const now = wishedIds.has(attractionId);
+    document.querySelectorAll(`.att-card[data-id="${attractionId}"] .wish-btn`).forEach(b => {
+        b.textContent = now ? '♥' : '♡';
+        b.classList.toggle('wished', now);
+    });
+}
+
 let allRecs = [];
 let filtered = [];
 let selectedIds = new Set();
@@ -427,7 +464,7 @@ function starsHTML(rating) {
 
 function buildCard(r) {
     const sel = selectedIds.has(r.attraction_id);
-    const scoreW = Math.round((r.recommendation_score||0)*100);
+    const scoreW = Math.min(98, Math.round((r.recommendation_score||0)*125));
     const photoSrc = r.photo_reference
         ? `/api/photo?ref=${encodeURIComponent(r.photo_reference)}&w=600`
         : (r.photo_url || null);
@@ -444,6 +481,11 @@ function buildCard(r) {
     card.dataset.id = r.attraction_id;
     card.innerHTML = `
         <div class="check-badge">✓</div>
+        <button class="wish-btn${wishedIds.has(r.attraction_id) ? ' wished' : ''}"
+                onclick="event.stopPropagation();toggleWish(${r.attraction_id},this)"
+                title="Save to Wishlist">
+            ${wishedIds.has(r.attraction_id) ? '♥' : '♡'}
+        </button>
         <div class="att-photo-wrap">
             ${photoHtml}
             <div class="photo-overlay">
@@ -460,6 +502,7 @@ function buildCard(r) {
             <div class="att-meta">${starsHTML(r.rating)}</div>
             <div class="att-tags">
                 <span class="att-tag att-tag-free">${esc(cap(r.category))}</span>
+                <span class="att-tag" style="background:#f0fdf4;color:#15803d;font-weight:700;">${r.entry_cost ? 'RM ' + r.entry_cost.toFixed(0) : 'Free'}</span>
             </div>
             <button class="att-add-btn" onclick="event.stopPropagation();toggleById(${r.attraction_id},this.closest('.att-card'))">
                 ${sel ? 'Added to Plan' : 'Add to Plan'}

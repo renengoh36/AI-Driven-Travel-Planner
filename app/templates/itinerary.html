@@ -6,11 +6,27 @@
     .s-itin { min-height: 100vh; background: #f8fafc; padding-top: 6rem; }
     .itin-header {
         background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%);
-        padding: 5rem 0;
+        background-size: cover;
+        background-position: center;
+        padding: 6rem 0;
         color: #fff;
+        position: relative;
+        overflow: hidden;
+        transition: background-image .4s ease;
     }
-    .itin-header h1 { font-size: 3.6rem; font-weight: 800; margin-bottom: 0.6rem; }
-    .itin-header p { color: #94a3b8; font-size: 1.7rem; }
+    /* dark gradient overlay — sits between photo and text */
+    .itin-header::before {
+        content: '';
+        position: absolute; inset: 0;
+        background: linear-gradient(160deg, rgba(15,23,42,.82) 0%, rgba(30,58,95,.68) 100%);
+        z-index: 0;
+    }
+    /* subtle ken-burns zoom on the photo */
+    .itin-header.has-photo { animation: hdr-zoom 12s ease-out forwards; }
+    @keyframes hdr-zoom { from { background-size: 110%; } to { background-size: 105%; } }
+    .itin-header .row { position: relative; z-index: 1; }
+    .itin-header h1 { font-size: clamp(2.8rem,4vw,4.4rem); font-weight: 900; margin-bottom: 0.6rem; letter-spacing: -.02em; }
+    .itin-header p { color: rgba(255,255,255,.7); font-size: 1.7rem; }
     .itin-meta-chips { display: flex; gap: 1.2rem; margin-top: 2rem; flex-wrap: wrap; }
     .chip {
         display: inline-flex; align-items: center; gap: 0.6rem;
@@ -79,6 +95,52 @@
     .summary-stat { text-align: center; }
     .summary-stat .val { font-size: 3rem; font-weight: 800; color: #2563eb; }
     .summary-stat .lbl { font-size: 1.35rem; color: #64748b; margin-top: 0.4rem; }
+    /* Weather widget */
+    .weather-card { background:#fff; border-radius:1.6rem; box-shadow:0 2px 16px rgba(0,0,0,.06); padding:2.4rem 3.2rem; margin-bottom:3rem; display:flex; gap:3rem; align-items:center; flex-wrap:wrap; }
+    .weather-now { display:flex; align-items:center; gap:1.6rem; flex-shrink:0; }
+    .weather-emoji { font-size:4.8rem; line-height:1; }
+    .weather-temp { font-size:3.6rem; font-weight:900; color:#1e293b; }
+    .weather-desc { font-size:1.4rem; color:#64748b; margin-top:.2rem; }
+    .weather-wind { font-size:1.2rem; color:#94a3b8; margin-top:.3rem; }
+    .weather-divider { width:1px; background:#e2e8f0; align-self:stretch; flex-shrink:0; }
+    .weather-forecast { display:flex; gap:1.2rem; overflow-x:auto; padding-bottom:.4rem; flex:1; }
+    .wf-day { text-align:center; flex-shrink:0; min-width:5.5rem; background:#f8fafc; border-radius:1rem; padding:.8rem .4rem; }
+    .wf-day-label { font-size:1.1rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.06em; margin-bottom:.4rem; }
+    .wf-day-icon  { font-size:1.8rem; margin:.2rem 0; }
+    .wf-day-hi    { font-size:1.3rem; font-weight:800; color:#1e293b; }
+    .wf-day-lo    { font-size:1.15rem; color:#94a3b8; }
+    /* Nearby food */
+    .food-section { background:#fff; border-radius:1.6rem; box-shadow:0 2px 16px rgba(0,0,0,.06); padding:3.2rem; margin-top:3rem; }
+    .food-section h3 { font-size:2.2rem; font-weight:700; color:#1e293b; margin-bottom:1.8rem; }
+    .food-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(22rem,1fr)); gap:1.6rem; }
+    .food-card { border-radius:1.2rem; overflow:hidden; border:1.5px solid #e2e8f0; transition:transform .2s,box-shadow .2s; }
+    .food-card:hover { transform:translateY(-3px); box-shadow:0 6px 20px rgba(0,0,0,.09); }
+    .food-photo { height:13rem; background:#f1f5f9; background-size:cover; background-position:center; }
+    .food-body { padding:1.2rem 1.4rem; }
+    .food-name { font-size:1.4rem; font-weight:700; color:#1e293b; margin-bottom:.4rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .food-meta { font-size:1.2rem; color:#64748b; display:flex; gap:.8rem; align-items:center; margin-bottom:1rem; }
+    .btn-add-food { width:100%; padding:.8rem; border-radius:.7rem; font-size:1.3rem; font-weight:700; border:1.5px solid #e2e8f0; background:#f8fafc; color:#374151; cursor:pointer; transition:all .2s; }
+    .btn-add-food:hover { border-color:#2563eb; color:#2563eb; background:#eff6ff; }
+    .btn-add-food.added { border-color:#16a34a; background:#f0fdf4; color:#16a34a; cursor:default; }
+    .day-picker-overlay { position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:9000; display:flex; align-items:center; justify-content:center; }
+    .day-picker-box { background:#fff; border-radius:1.2rem; padding:2.4rem; min-width:28rem; box-shadow:0 16px 48px rgba(0,0,0,.18); }
+    .day-picker-box h4 { font-size:1.7rem; font-weight:700; color:#1e293b; margin-bottom:1.6rem; }
+    .day-picker-btns { display:flex; flex-direction:column; gap:.8rem; }
+    .day-picker-btns button { padding:1rem; border-radius:.7rem; font-size:1.4rem; font-weight:600; border:1.5px solid #e2e8f0; background:#f8fafc; color:#1e293b; cursor:pointer; transition:all .15s; }
+    .day-picker-btns button:hover { border-color:#2563eb; background:#eff6ff; color:#2563eb; }
+    .btn-picker-cancel { margin-top:.8rem; background:none; border:none; color:#94a3b8; font-size:1.3rem; cursor:pointer; width:100%; padding:.6rem; }
+    /* Packing list */
+    .packing-section { background:#fff; border-radius:1.6rem; box-shadow:0 2px 16px rgba(0,0,0,.06); padding:3.2rem; margin-top:3rem; }
+    .packing-section h3 { font-size:2.2rem; font-weight:700; color:#1e293b; margin-bottom:1.8rem; }
+    .btn-pack { padding:1.1rem 3rem; background:linear-gradient(135deg,#2563eb,#7c3aed); color:#fff; border:none; border-radius:.8rem; font-size:1.55rem; font-weight:700; cursor:pointer; transition:opacity .2s; }
+    .btn-pack:hover { opacity:.88; }
+    .btn-pack:disabled { opacity:.6; cursor:wait; }
+    .pack-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(18rem,1fr)); gap:2rem; margin-top:2.4rem; }
+    .pack-col { background:#f8fafc; border-radius:1.2rem; padding:1.8rem; }
+    .pack-col-title { font-size:1.4rem; font-weight:800; color:#1e293b; margin-bottom:1.2rem; letter-spacing:.02em; }
+    .pack-item { display:flex; align-items:flex-start; gap:.8rem; margin-bottom:.8rem; cursor:pointer; font-size:1.4rem; color:#374151; }
+    .pack-item input[type=checkbox] { width:1.6rem; height:1.6rem; margin-top:.15rem; accent-color:#2563eb; flex-shrink:0; cursor:pointer; }
+    .pack-item.checked span { text-decoration:line-through; color:#94a3b8; }
     /* Rating section */
     .rating-section {
         background: #fff; border-radius: 1.6rem;
@@ -110,10 +172,103 @@
         cursor: pointer; transition: opacity 0.2s;
     }
     .btn-rate:hover { opacity: 0.9; }
-    /* Print */
+    /* ── PRINT LAYOUT (hidden on screen) ── */
+    .print-only { display: none !important; }
+
     @media print {
-        .s-header, .rating-section, .generate-bar, .btn-print { display: none !important; }
-        .s-itin { padding-top: 0; }
+        /* Hide web UI — note: #print-layout lives inside .s-itin so we can't
+           hide .s-itin itself; hide its individual children instead */
+        .app-topbar, .sidebar, .itin-header,
+        .summary-card, #alert, #days-container,
+        .rating-section, .gen-bar, .packing-section,
+        .chatbot-fab, .chatbot-panel { display: none !important; }
+
+        /* Show print layout */
+        .print-only { display: block !important; }
+
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        body { margin: 0; padding: 0; background: #fff; font-family: 'Segoe UI', Arial, sans-serif; font-size: 10pt; color: #1e293b; }
+
+        /* ── Cover header ── */
+        .p-header {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+            color: #fff;
+            padding: 2.2rem 2.8rem 1.8rem;
+            display: flex; justify-content: space-between; align-items: flex-end;
+            margin-bottom: 1.6rem;
+        }
+        .p-logo { font-size: 22pt; font-weight: 900; letter-spacing: -.02em; }
+        .p-logo span { color: #f59e0b; }
+        .p-title-block h1 { font-size: 18pt; font-weight: 800; margin: 0 0 .2rem; }
+        .p-title-block p  { font-size: 9pt; opacity: .75; margin: 0; }
+        .p-meta { text-align: right; font-size: 8.5pt; opacity: .7; }
+
+        /* ── Summary bar ── */
+        .p-summary {
+            display: flex; gap: 0; border: 1.5px solid #e2e8f0; border-radius: 8px;
+            overflow: hidden; margin: 0 2.8rem 1.8rem;
+        }
+        .p-stat {
+            flex: 1; text-align: center; padding: .7rem .5rem;
+            border-right: 1.5px solid #e2e8f0;
+        }
+        .p-stat:last-child { border-right: none; }
+        .p-stat .sv { font-size: 14pt; font-weight: 800; color: #2563eb; display: block; }
+        .p-stat .sl { font-size: 7.5pt; color: #64748b; text-transform: uppercase; letter-spacing: .06em; }
+
+        /* ── Day section ── */
+        .p-day { margin: 0 2.8rem 1.4rem; page-break-inside: avoid; }
+        .p-day-header {
+            display: flex; align-items: center; gap: .8rem;
+            margin-bottom: .7rem;
+        }
+        .p-day-badge {
+            background: #2563eb; color: #fff;
+            font-size: 8pt; font-weight: 800;
+            padding: .25rem .9rem; border-radius: 20px;
+            white-space: nowrap;
+        }
+        .p-day-line { flex: 1; height: 1.5px; background: #e2e8f0; }
+        .p-day-stops { font-size: 8pt; color: #94a3b8; white-space: nowrap; }
+
+        /* ── Stop row ── */
+        .p-stop {
+            display: flex; gap: 1rem; align-items: flex-start;
+            padding: .65rem .9rem;
+            border: 1px solid #f1f5f9; border-radius: 7px;
+            margin-bottom: .45rem;
+            background: #fafafa;
+            page-break-inside: avoid;
+        }
+        .p-stop-num {
+            width: 20px; height: 20px; border-radius: 50%;
+            background: #2563eb; color: #fff;
+            font-size: 7.5pt; font-weight: 800;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; margin-top: 1px;
+        }
+        .p-stop-time {
+            font-size: 8pt; font-weight: 700; color: #2563eb;
+            white-space: nowrap; min-width: 90px; padding-top: 1px;
+        }
+        .p-stop-icon { font-size: 13pt; flex-shrink: 0; line-height: 1; }
+        .p-stop-body { flex: 1; }
+        .p-stop-name { font-size: 10pt; font-weight: 700; color: #1e293b; margin-bottom: .15rem; }
+        .p-stop-meta { font-size: 7.5pt; color: #64748b; }
+        .p-stop-badge {
+            display: inline-block; background: #eff6ff; color: #1d4ed8;
+            font-size: 6.5pt; font-weight: 700; padding: .1rem .5rem;
+            border-radius: 10px; text-transform: capitalize; margin-right: .4rem;
+        }
+
+        /* ── Footer ── */
+        .p-footer {
+            margin: 1.6rem 2.8rem 0;
+            padding-top: .8rem;
+            border-top: 1.5px solid #e2e8f0;
+            display: flex; justify-content: space-between;
+            font-size: 7.5pt; color: #94a3b8;
+        }
     }
 </style>
 {% endblock %}
@@ -143,8 +298,27 @@
 
         <div id="alert" class="alert-box error"></div>
 
+        <!-- Weather widget -->
+        <div class="weather-card" id="weather-card" style="display:none;"></div>
+
         <!-- Day-by-day timeline -->
         <div id="days-container"></div>
+
+        <!-- Nearby food -->
+        <div class="food-section" id="food-section" style="display:none;">
+            <h3>🍜 Nearby Food & Dining</h3>
+            <div class="food-grid" id="food-grid"></div>
+        </div>
+
+        <!-- ═══ PRINT LAYOUT (hidden on screen, shown on print) ═══ -->
+        <div class="print-only" id="print-layout"></div>
+
+        <!-- Packing List -->
+        <div class="packing-section" id="packing-section" style="display:none;">
+            <h3>🧳 Packing List</h3>
+            <button class="btn-pack" id="packBtn" onclick="generatePackingList()">Generate AI Packing List</button>
+            <div id="pack-result"></div>
+        </div>
 
         <!-- Rating -->
         <div class="rating-section" id="rating-section">
@@ -175,10 +349,157 @@ const topbarActions = document.querySelector('.topbar-actions');
 if (topbarActions) {
     topbarActions.insertAdjacentHTML('beforebegin',
         `<div style="display:flex;gap:1rem;margin-right:1rem;">
-            <button onclick="window.print()" style="padding:.6rem 1.6rem;border:2px solid #e2e8f0;background:#fff;color:#374151;border-radius:.6rem;font-size:1.3rem;font-weight:600;cursor:pointer;">🖨️ Print</button>
+            <button onclick="exportItinerary()" style="padding:.6rem 1.6rem;border:2px solid #e2e8f0;background:#fff;color:#374151;border-radius:.6rem;font-size:1.3rem;font-weight:600;cursor:pointer;">🖨️ Export PDF</button>
             <a href="/dashboard" style="padding:.6rem 1.6rem;background:var(--pengo-blue);color:#fff;border-radius:.6rem;font-size:1.3rem;font-weight:600;text-decoration:none;">+ New Trip</a>
         </div>`
     );
+}
+
+function exportItinerary() {
+    buildPrintLayout();
+    const content = document.getElementById('print-layout').innerHTML;
+    const dest    = itinerary?.destination || 'Itinerary';
+    const win = window.open('', '_blank', 'width=900,height=700');
+    win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>${dest} Itinerary — Pengo</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 10pt; color: #1e293b; background: #fff; }
+.p-header {
+    background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+    color: #fff; padding: 2.2rem 2.8rem 1.8rem;
+    display: flex; justify-content: space-between; align-items: flex-end;
+    margin-bottom: 1.6rem;
+}
+.p-logo { font-size: 22pt; font-weight: 900; letter-spacing: -.02em; }
+.p-logo span { color: #f59e0b; }
+.p-title-block h1 { font-size: 18pt; font-weight: 800; margin: 0 0 .2rem; }
+.p-title-block p  { font-size: 9pt; opacity: .75; margin: 0; }
+.p-meta { text-align: right; font-size: 8.5pt; opacity: .7; }
+.p-summary {
+    display: flex; gap: 0; border: 1.5px solid #e2e8f0; border-radius: 8px;
+    overflow: hidden; margin: 0 2.8rem 1.8rem;
+}
+.p-stat { flex: 1; text-align: center; padding: .7rem .5rem; border-right: 1.5px solid #e2e8f0; }
+.p-stat:last-child { border-right: none; }
+.p-stat .sv { font-size: 14pt; font-weight: 800; color: #2563eb; display: block; }
+.p-stat .sl { font-size: 7.5pt; color: #64748b; text-transform: uppercase; letter-spacing: .06em; }
+.p-day { margin: 0 2.8rem 1.4rem; page-break-inside: avoid; }
+.p-day-header { display: flex; align-items: center; gap: .8rem; margin-bottom: .7rem; }
+.p-day-badge { background: #2563eb; color: #fff; font-size: 8pt; font-weight: 800; padding: .25rem .9rem; border-radius: 20px; white-space: nowrap; }
+.p-day-line { flex: 1; height: 1.5px; background: #e2e8f0; }
+.p-day-stops { font-size: 8pt; color: #94a3b8; white-space: nowrap; }
+.p-stop {
+    display: flex; gap: 1rem; align-items: flex-start;
+    padding: .65rem .9rem; border: 1px solid #f1f5f9;
+    border-radius: 7px; margin-bottom: .45rem; background: #fafafa;
+    page-break-inside: avoid;
+}
+.p-stop-num { width: 20px; height: 20px; border-radius: 50%; background: #2563eb; color: #fff; font-size: 7.5pt; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+.p-stop-time { font-size: 8pt; font-weight: 700; color: #2563eb; white-space: nowrap; min-width: 90px; padding-top: 1px; }
+.p-stop-icon { font-size: 13pt; flex-shrink: 0; line-height: 1; }
+.p-stop-body { flex: 1; }
+.p-stop-name { font-size: 10pt; font-weight: 700; color: #1e293b; margin-bottom: .15rem; }
+.p-stop-meta { font-size: 7.5pt; color: #64748b; }
+.p-stop-badge { display: inline-block; background: #eff6ff; color: #1d4ed8; font-size: 6.5pt; font-weight: 700; padding: .1rem .5rem; border-radius: 10px; text-transform: capitalize; margin-right: .4rem; }
+.p-footer { margin: 1.6rem 2.8rem 0; padding-top: .8rem; border-top: 1.5px solid #e2e8f0; display: flex; justify-content: space-between; font-size: 7.5pt; color: #94a3b8; }
+</style>
+</head>
+<body>
+${content}
+<script>window.onload = function(){ window.print(); window.close(); };<\/script>
+</body>
+</html>`);
+    win.document.close();
+}
+
+function buildPrintLayout() {
+    if (!itinerary) return;
+    const items = itinerary.items || [];
+    const days  = itinerary.travel_days || 1;
+    const dest  = itinerary.destination || '';
+    const today = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
+
+    const totalCost = items.reduce((s,i) => s + (i.attraction?.entry_cost || 0), 0);
+    const rated     = items.filter(i => i.attraction?.rating);
+    const avgRating = rated.length ? (rated.reduce((s,i) => s + i.attraction.rating, 0) / rated.length).toFixed(1) : '—';
+
+    // Group by day
+    const byDay = {};
+    items.forEach(item => {
+        const d = item.day_number || 1;
+        if (!byDay[d]) byDay[d] = [];
+        byDay[d].push(item);
+    });
+
+    const dayBlocks = Object.keys(byDay).sort((a,b)=>a-b).map(day => {
+        const stops = byDay[day].map((item, idx) => {
+            const att  = item.attraction || {};
+            const icon = CATEGORY_ICONS[att.category] || '📍';
+            const rating = att.rating ? `⭐ ${att.rating.toFixed(1)}` : '';
+            const cost   = att.entry_cost ? `RM${att.entry_cost.toFixed(0)} entry` : 'Free entry';
+            const cat    = att.category || 'attraction';
+            return `
+            <div class="p-stop">
+                <div class="p-stop-num">${idx+1}</div>
+                <div class="p-stop-time">${item.start_time||'—'} – ${item.end_time||'—'}</div>
+                <div class="p-stop-icon">${icon}</div>
+                <div class="p-stop-body">
+                    <div class="p-stop-name">${att.name || 'Unknown'}</div>
+                    <div class="p-stop-meta">
+                        <span class="p-stop-badge">${cat}</span>
+                        ${rating ? rating + ' &nbsp;·&nbsp; ' : ''}${cost}
+                        ${att.city ? '&nbsp;·&nbsp; 📍 ' + att.city : ''}
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+
+        return `
+        <div class="p-day">
+            <div class="p-day-header">
+                <div class="p-day-badge">Day ${day}</div>
+                <div class="p-day-line"></div>
+                <span class="p-day-stops">${byDay[day].length} stop${byDay[day].length!==1?'s':''}</span>
+            </div>
+            ${stops}
+        </div>`;
+    }).join('');
+
+    document.getElementById('print-layout').innerHTML = `
+        <div class="p-header">
+            <div>
+                <div class="p-logo">Pen<span>go</span></div>
+                <div style="font-size:8pt;opacity:.65;margin-top:.3rem;">AI-Driven Travel Planner</div>
+            </div>
+            <div class="p-title-block" style="text-align:center;">
+                <h1>${dest} Travel Itinerary</h1>
+                <p>AI-optimised route · Personalised for you</p>
+            </div>
+            <div class="p-meta">
+                <div>Generated on</div>
+                <div style="font-weight:700;opacity:1;">${today}</div>
+            </div>
+        </div>
+
+        <div class="p-summary">
+            <div class="p-stat"><span class="sv">${days}</span><span class="sl">Days</span></div>
+            <div class="p-stat"><span class="sv">${items.length}</span><span class="sl">Attractions</span></div>
+            <div class="p-stat"><span class="sv">RM${totalCost.toFixed(0)}</span><span class="sl">Est. Entry Cost</span></div>
+            <div class="p-stat"><span class="sv">${avgRating}★</span><span class="sl">Avg Rating</span></div>
+            <div class="p-stat"><span class="sv">${dest}</span><span class="sl">Destination</span></div>
+        </div>
+
+        ${dayBlocks}
+
+        <div class="p-footer">
+            <span>Pengo · AI-Driven Travel Planner · pengo.app</span>
+            <span>Generated on ${today}</span>
+        </div>
+    `;
 }
 
 const CATEGORY_ICONS = {
@@ -210,6 +531,25 @@ function renderItinerary(itin) {
     document.getElementById('chip-days').textContent = `${days} Day${days > 1 ? 's' : ''}`;
     document.getElementById('chip-dest').textContent = destination;
     document.getElementById('chip-atts').textContent = `${items.length} Attractions`;
+    document.getElementById('packing-section').style.display = 'block';
+    loadWeather(destination);
+    loadFoodNearby(items[0]?.attraction?.city || destination);
+
+    // Set header background from first attraction photo
+    const firstWithPhoto = items.find(i => i.attraction?.photo_reference || i.attraction?.photo_url);
+    if (firstWithPhoto) {
+        const att = firstWithPhoto.attraction;
+        const imgUrl = att.photo_reference
+            ? `/api/photo?ref=${encodeURIComponent(att.photo_reference)}&w=1400`
+            : att.photo_url;
+        if (imgUrl) {
+            const hdr = document.querySelector('.itin-header');
+            if (hdr) {
+                hdr.style.backgroundImage = `url('${imgUrl}')`;
+                hdr.classList.add('has-photo');
+            }
+        }
+    }
 
     // Summary stats
     const totalCost = items.reduce((s, i) => s + (i.attraction?.entry_cost || 0), 0);
@@ -237,6 +577,7 @@ function renderItinerary(itin) {
         const dayItems = byDay[day];
         const block = document.createElement('div');
         block.className = 'day-block';
+        block.dataset.day = day;
 
         const dayItems_html = dayItems.map((item, idx) => {
             const att = item.attraction || {};
@@ -269,6 +610,195 @@ function renderItinerary(itin) {
         `;
         container.appendChild(block);
     });
+}
+
+// ── ADD FOOD STOP TO ITINERARY ──
+function addFoodToDay(attractionId, btn) {
+    if (!itinerary) return;
+    const days = itinerary.travel_days || 1;
+
+    if (days === 1) {
+        doAddStop(attractionId, 1, btn);
+    } else {
+        // Show day picker modal
+        const overlay = document.createElement('div');
+        overlay.className = 'day-picker-overlay';
+        const dayBtns = Array.from({length: days}, (_, i) => i + 1)
+            .map(d => `<button onclick="doAddStop(${attractionId},${d},document.querySelector('.btn-add-food[data-aid=\\'${attractionId}\\']'));this.closest('.day-picker-overlay').remove()">Day ${d}</button>`)
+            .join('');
+        overlay.innerHTML = `
+            <div class="day-picker-box">
+                <h4>Add to which day?</h4>
+                <div class="day-picker-btns">${dayBtns}</div>
+                <button class="btn-picker-cancel" onclick="this.closest('.day-picker-overlay').remove()">Cancel</button>
+            </div>`;
+        btn.dataset.aid = attractionId;
+        document.body.appendChild(overlay);
+    }
+}
+
+async function doAddStop(attractionId, dayNumber, btn) {
+    if (!itinerary?.itinerary_id) return;
+    if (btn) { btn.disabled = true; btn.textContent = 'Adding…'; }
+
+    try {
+        const res  = await fetch(`/api/itinerary/${itinerary.itinerary_id}/add-stop`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: parseInt(userId),
+                attraction_id: attractionId,
+                day_number: dayNumber,
+            }),
+        });
+        const data = await res.json();
+        if (res.status === 409) {
+            if (btn) { btn.textContent = 'Already added'; btn.classList.add('added'); }
+            return;
+        }
+        if (!res.ok) throw new Error(data.error || 'Failed');
+
+        // Update local itinerary and re-render the affected day
+        const newItems = data.items || [];
+        itinerary.items = itinerary.items.filter(i => i.day_number !== dayNumber).concat(newItems);
+        renderDay(dayNumber, newItems);
+
+        if (btn) { btn.textContent = '✓ Added'; btn.classList.add('added'); btn.disabled = true; }
+    } catch(e) {
+        if (btn) { btn.disabled = false; btn.textContent = '+ Add to Itinerary'; }
+        alert(e.message || 'Could not add stop. Try again.');
+    }
+}
+
+function renderDay(dayNumber, items) {
+    const container = document.getElementById('days-container');
+    const existing  = container.querySelector(`.day-block[data-day="${dayNumber}"]`);
+
+    const dayItems_html = items.map(item => {
+        const att  = item.attraction || {};
+        const icon = CATEGORY_ICONS[att.category] || '📍';
+        const rating = att.rating ? `⭐ ${att.rating.toFixed(1)}` : '';
+        const cost   = att.entry_cost ? `💵 RM${att.entry_cost.toFixed(0)} entry` : '💵 Free entry';
+        return `
+            <div class="timeline-item">
+                <div class="timeline-dot"></div>
+                <div class="tl-card">
+                    <div class="tl-icon">${icon}</div>
+                    <div class="tl-info">
+                        <div class="cat-tag">${att.category || 'attraction'}</div>
+                        <h4>${att.name || 'Unknown'}</h4>
+                        <div class="tl-time">🕘 ${item.start_time || '09:00'} – ${item.end_time || '10:30'}</div>
+                        <div class="tl-meta">${rating}${rating ? ' &nbsp;•&nbsp; ' : ''}${cost}</div>
+                    </div>
+                </div>
+            </div>`;
+    }).join('');
+
+    const block = document.createElement('div');
+    block.className = 'day-block';
+    block.dataset.day = dayNumber;
+    block.innerHTML = `
+        <div class="day-header">
+            <div class="day-badge">Day ${dayNumber}</div>
+            <div class="day-line"></div>
+            <span style="font-size:1.35rem;color:#94a3b8;white-space:nowrap;">${items.length} stop${items.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="timeline">${dayItems_html}</div>`;
+
+    if (existing) container.replaceChild(block, existing);
+    else container.appendChild(block);
+}
+
+// ── WEATHER WIDGET (Open-Meteo — no API key needed) ──
+const WMO = code => {
+    if (code === 0)          return ['☀️','Clear sky'];
+    if (code <= 3)           return ['⛅','Partly cloudy'];
+    if (code <= 48)          return ['🌫️','Foggy'];
+    if (code <= 55)          return ['🌦️','Drizzle'];
+    if (code <= 65)          return ['🌧️','Rain'];
+    if (code <= 75)          return ['❄️','Snow'];
+    if (code <= 82)          return ['🌦️','Showers'];
+    if (code <= 99)          return ['⛈️','Thunderstorm'];
+    return ['🌡️','Unknown'];
+};
+const DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+async function loadWeather(destination) {
+    try {
+        const geo = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(destination)}&count=1&language=en&format=json`);
+        const gd  = await geo.json();
+        const loc = gd.results?.[0];
+        if (!loc) return;
+
+        const w = await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}` +
+            `&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m` +
+            `&daily=weather_code,temperature_2m_max,temperature_2m_min` +
+            `&timezone=auto&forecast_days=7`
+        );
+        const wd = await w.json();
+        const cur = wd.current;
+        const d   = wd.daily;
+        const [curIcon, curDesc] = WMO(cur.weather_code);
+
+        const forecastHtml = d.time.map((t, i) => {
+            const [icon] = WMO(d.weather_code[i]);
+            const label  = i === 0 ? 'Today' : DAYS_SHORT[new Date(t).getDay()];
+            return `<div class="wf-day">
+                <div class="wf-day-label">${label}</div>
+                <div class="wf-day-icon">${icon}</div>
+                <div class="wf-day-hi">${Math.round(d.temperature_2m_max[i])}°</div>
+                <div class="wf-day-lo">${Math.round(d.temperature_2m_min[i])}°</div>
+            </div>`;
+        }).join('');
+
+        const card = document.getElementById('weather-card');
+        card.innerHTML = `
+            <div class="weather-now">
+                <div class="weather-emoji">${curIcon}</div>
+                <div>
+                    <div class="weather-temp">${Math.round(cur.temperature_2m)}°C</div>
+                    <div class="weather-desc">${curDesc} · ${loc.name}</div>
+                    <div class="weather-wind">💨 ${cur.wind_speed_10m} km/h &nbsp;💧 ${cur.relative_humidity_2m}%</div>
+                </div>
+            </div>
+            <div class="weather-divider"></div>
+            <div class="weather-forecast">${forecastHtml}</div>`;
+        card.style.display = 'flex';
+    } catch(e) { /* silently skip if offline or no match */ }
+}
+
+// ── NEARBY FOOD ──
+async function loadFoodNearby(city) {
+    try {
+        const res  = await fetch(`/api/itinerary/food-nearby?city=${encodeURIComponent(city)}`);
+        const data = await res.json();
+        const food = data.food || [];
+        if (!food.length) return;
+
+        const grid = document.getElementById('food-grid');
+        grid.innerHTML = food.map(f => {
+            const photoSrc = f.photo_reference
+                ? `/api/photo?ref=${encodeURIComponent(f.photo_reference)}&w=400`
+                : (f.photo_url || '');
+            const stars = f.rating ? '★'.repeat(Math.floor(f.rating)) : '';
+            const price = f.entry_cost ? `~RM ${f.entry_cost.toFixed(0)}/person` : 'Free';
+            return `<div class="food-card" data-att-id="${f.attraction_id}">
+                <div class="food-photo" ${photoSrc ? `style="background-image:url('${photoSrc}')"` : `style="background:#fef9c3"`}></div>
+                <div class="food-body">
+                    <div class="food-name">${f.name}</div>
+                    <div class="food-meta">
+                        <span style="color:#f59e0b">${stars}</span>
+                        <span>${f.rating ? f.rating.toFixed(1) : ''}</span>
+                        <span style="color:#cbd5e1">·</span>
+                        <span style="color:#15803d;font-weight:600;">${price}</span>
+                    </div>
+                    <button class="btn-add-food" onclick="addFoodToDay(${f.attraction_id}, this)">+ Add to Itinerary</button>
+                </div>
+            </div>`;
+        }).join('');
+        document.getElementById('food-section').style.display = 'block';
+    } catch(e) {}
 }
 
 // Star rating
@@ -320,6 +850,58 @@ async function submitRating() {
         btn.disabled = false;
         btn.textContent = 'Submit Rating';
     }
+}
+
+async function generatePackingList() {
+    if (!itinerary) return;
+    const btn = document.getElementById('packBtn');
+    const result = document.getElementById('pack-result');
+    btn.disabled = true;
+    btn.textContent = '⏳ Generating…';
+
+    const categories = [...new Set((itinerary.items || [])
+        .map(i => i.attraction?.category).filter(Boolean))];
+    try {
+        const res = await fetch('/api/itinerary/packing-list', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                destination: itinerary.destination,
+                travel_days: itinerary.travel_days,
+                categories,
+            })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
+        const pl = data.packing_list || {};
+        const sections = [
+            ['🎒 Essentials',   pl.essentials],
+            ['👕 Clothing',     pl.clothing],
+            ['🧴 Toiletries',   pl.toiletries],
+            ['🔌 Electronics',  pl.electronics],
+            ['🎯 Activity Gear',pl.activity_specific],
+        ].filter(([, items]) => items && items.length);
+
+        const fallbackNote = data.fallback
+            ? `<p style="font-size:1.25rem;color:#94a3b8;margin-bottom:1.2rem;">ℹ️ AI unavailable — showing a standard checklist. <a href="#" onclick="generatePackingList();return false;" style="color:#2563eb;">Retry</a></p>`
+            : '';
+        result.innerHTML = fallbackNote + `<div class="pack-grid">${
+            sections.map(([title, items]) => `
+                <div class="pack-col">
+                    <div class="pack-col-title">${title}</div>
+                    ${items.map(item => `
+                        <label class="pack-item" onclick="this.classList.toggle('checked')">
+                            <input type="checkbox" onclick="event.stopPropagation();this.closest('.pack-item').classList.toggle('checked')">
+                            <span>${item}</span>
+                        </label>`).join('')}
+                </div>`).join('')
+        }</div>`;
+        btn.textContent = '🔄 Regenerate';
+    } catch(e) {
+        result.innerHTML = `<p style="color:#ef4444;margin-top:1rem;">❌ ${e.message || 'Could not generate list. Please try again.'}</p>`;
+        btn.textContent = 'Generate AI Packing List';
+    }
+    btn.disabled = false;
 }
 </script>
 {% endblock %}

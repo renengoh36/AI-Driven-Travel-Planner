@@ -7,6 +7,7 @@ from .itinerary_item import ItineraryItem
 from .itinerary_rating import ItineraryRating
 from .user_behaviour import UserBehaviour
 from .attraction_feedback import AttractionFeedback
+from .wishlist import Wishlist
 
 __all__ = [
     "db",
@@ -18,4 +19,5 @@ __all__ = [
     "ItineraryRating",
     "UserBehaviour",
     "AttractionFeedback",
+    "Wishlist",
 ]

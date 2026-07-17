@@ -110,7 +110,12 @@ def recommend_attractions(
     cf_arr  = np.array([cf_raw.get(a["attraction_id"], 0.5) for a in attractions])
     cf_norm = safe_norm(cf_arr)
 
-    final_scores = 0.40 * hybrid_norm + 0.25 * cf_norm + 0.20 * ratings_norm + 0.15 * pops_norm
+    # When CF is flat (cold-start — no rating history yet), skip it and redistribute
+    # its 0.25 weight to CB and rating so the top match can score higher (≥85%)
+    if cf_norm.sum() < 1e-9:
+        final_scores = 0.55 * hybrid_norm + 0.28 * ratings_norm + 0.17 * pops_norm
+    else:
+        final_scores = 0.40 * hybrid_norm + 0.25 * cf_norm + 0.20 * ratings_norm + 0.15 * pops_norm
     ranked_indices = np.argsort(final_scores)[::-1][:top_n]
 
     result = []
