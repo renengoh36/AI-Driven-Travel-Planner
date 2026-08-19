@@ -440,7 +440,7 @@ function buildPrintLayout() {
             const att  = item.attraction || {};
             const icon = CATEGORY_ICONS[att.category] || '📍';
             const rating = att.rating ? `⭐ ${att.rating.toFixed(1)}` : '';
-            const cost   = att.entry_cost ? `RM${att.entry_cost.toFixed(0)} entry` : 'Free entry';
+            const cost   = att.entry_cost == null ? 'Price N/A' : (att.entry_cost ? `RM${att.entry_cost.toFixed(0)} entry` : 'Free entry');
             const cat    = att.category || 'attraction';
             return `
             <div class="p-stop">
@@ -535,20 +535,29 @@ function renderItinerary(itin) {
     loadWeather(destination);
     loadFoodNearby(items[0]?.attraction?.city || destination);
 
-    // Set header background from first attraction photo
-    const firstWithPhoto = items.find(i => i.attraction?.photo_reference || i.attraction?.photo_url);
-    if (firstWithPhoto) {
-        const att = firstWithPhoto.attraction;
-        const imgUrl = att.photo_reference
+    // Set header background from the first attraction photo that actually loads —
+    // preload-test each candidate instead of trusting the first one, since a broken
+    // photo_reference would otherwise leave the header blank with nothing to fall
+    // back on (CSS background-image has no onerror). Untested candidates keep the
+    // default gradient defined in .itin-header until/unless one succeeds.
+    const photoCandidates = items
+        .map(i => i.attraction)
+        .filter(att => att?.photo_reference || att?.photo_url)
+        .map(att => att.photo_reference
             ? `/api/photo?ref=${encodeURIComponent(att.photo_reference)}&w=1400`
-            : att.photo_url;
-        if (imgUrl) {
-            const hdr = document.querySelector('.itin-header');
-            if (hdr) {
-                hdr.style.backgroundImage = `url('${imgUrl}')`;
+            : att.photo_url);
+    const hdr = document.querySelector('.itin-header');
+    if (hdr && photoCandidates.length) {
+        (function tryNext(idx) {
+            if (idx >= photoCandidates.length) return;  // none loaded — keep default gradient
+            const probe = new Image();
+            probe.onload  = () => {
+                hdr.style.backgroundImage = `url('${photoCandidates[idx]}')`;
                 hdr.classList.add('has-photo');
-            }
-        }
+            };
+            probe.onerror = () => tryNext(idx + 1);
+            probe.src = photoCandidates[idx];
+        })(0);
     }
 
     // Summary stats

@@ -99,7 +99,7 @@ async function loadWishlist() {
                 ? `/api/photo?ref=${encodeURIComponent(att.photo_reference)}&w=600`
                 : (att.photo_url || '');
             const stars  = att.rating ? '★'.repeat(Math.floor(att.rating)) + (att.rating%1>=.5?'½':'') : '';
-            const cost   = att.entry_cost ? `RM ${att.entry_cost.toFixed(0)}` : 'Free';
+            const cost   = att.entry_cost == null ? 'Price N/A' : (att.entry_cost ? `RM ${att.entry_cost.toFixed(0)}` : 'Free');
 
             const card = document.createElement('div');
             card.className = 'wish-card';

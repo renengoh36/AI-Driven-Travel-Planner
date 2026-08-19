@@ -1,17 +1,4 @@
-"""
-Integration Tests — API endpoints
-
-All tests use a Flask test client backed by an in-memory SQLite database so
-no external MySQL connection is required.  Test data is created fresh for
-every test class in setUpClass().
-
-Test groups (20 test cases):
-    TC01–TC05  POST /api/itinerary/generate
-    TC06–TC09  GET  /api/itinerary/<id>
-    TC10–TC12  POST /api/itinerary/<id>/rate
-    TC13–TC16  PATCH /api/users/<id>/preferences
-    TC17–TC20  POST /api/chat
-"""
+# Integration Tests — API endpoints. Flask test client + in-memory SQLite (no external MySQL needed); fresh data seeded per test class in setUpClass(). 20 cases: TC01-05 itinerary/generate, TC06-09 itinerary/<id>, TC10-12 itinerary/<id>/rate, TC13-16 users/<id>/preferences, TC17-20 chat.
 
 import sys
 import os
@@ -72,10 +59,7 @@ def _seed_attractions(db, Attraction):
     db.session.commit()
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  Base test case with app factory
-# ═══════════════════════════════════════════════════════════════════════════════
-
+# Base test case with app factory
 class BaseTestCase(unittest.TestCase):
 
     @classmethod
@@ -120,10 +104,7 @@ class BaseTestCase(unittest.TestCase):
         )
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  TC01–TC05  POST /api/itinerary/generate
-# ═══════════════════════════════════════════════════════════════════════════════
-
+# TC01–TC05  POST /api/itinerary/generate
 class TestGenerateItinerary(BaseTestCase):
 
     def test_TC01_generate_success_returns_201(self):
@@ -184,10 +165,7 @@ class TestGenerateItinerary(BaseTestCase):
                         msg="All items should be on day 1 for single-day trip")
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  TC06–TC09  GET /api/itinerary/<id>
-# ═══════════════════════════════════════════════════════════════════════════════
-
+# TC06–TC09  GET /api/itinerary/<id>
 class TestGetItinerary(BaseTestCase):
 
     @classmethod
@@ -235,10 +213,7 @@ class TestGetItinerary(BaseTestCase):
             self.assertIn(field, data, msg=f"Field '{field}' must be present")
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  TC10–TC12  POST /api/itinerary/<id>/rate
-# ═══════════════════════════════════════════════════════════════════════════════
-
+# TC10–TC12  POST /api/itinerary/<id>/rate
 class TestRateItinerary(BaseTestCase):
 
     @classmethod
@@ -283,10 +258,7 @@ class TestRateItinerary(BaseTestCase):
         self.assertEqual(rv.status_code, 400)
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  TC13–TC16  PATCH /api/users/<id>/preferences
-# ═══════════════════════════════════════════════════════════════════════════════
-
+# TC13–TC16  PATCH /api/users/<id>/preferences
 class TestUpdatePreferences(BaseTestCase):
 
     def test_TC13_update_budget_type_returns_200(self):
@@ -318,10 +290,7 @@ class TestUpdatePreferences(BaseTestCase):
         self.assertEqual(rv.status_code, 404)
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  TC17–TC20  POST /api/chat
-# ═══════════════════════════════════════════════════════════════════════════════
-
+# TC17–TC20  POST /api/chat
 class TestChatEndpoint(BaseTestCase):
 
     def test_TC17_greeting_returns_200_with_reply(self):
@@ -361,8 +330,6 @@ class TestChatEndpoint(BaseTestCase):
         self.assertEqual(data["entities"]["destination"], "Tokyo")
         self.assertEqual(data["intent"], "update_destination")
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

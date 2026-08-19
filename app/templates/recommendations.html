@@ -7,11 +7,20 @@ body.app-page { padding-top: 6rem; }
 
 /* ── PAGE HEADER ── */
 .exp-header {
+    position: relative;
     background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+    background-size: cover; background-position: center;
     padding: 4rem 0 5.6rem;
     color: #fff;
+    transition: background-image .4s ease;
+    overflow: hidden;
 }
-.exp-header-inner { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 2rem; }
+/* Dark wash so white header text stays readable once a real photo loads in */
+.exp-header::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(160deg, rgba(15,23,42,.82) 0%, rgba(30,58,95,.68) 100%);
+}
+.exp-header-inner { position: relative; z-index: 1; display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 2rem; }
 .exp-header h1 { font-size: 3.2rem; font-weight: 900; margin-bottom: .4rem; }
 .exp-header .dest-sub { font-size: 1.6rem; color: #94a3b8; }
 .exp-chips { display: flex; gap: .8rem; flex-wrap: wrap; margin-top: 1.2rem; }
@@ -360,6 +369,29 @@ if (!allRecs.length) {
 } else {
     buildTrending();
     applyFilters();
+    setHeaderPhoto();
+}
+
+// Background photo for the "Attractions in {destination}" header — preload-test
+// candidates in rating/popularity order instead of trusting the first one, since
+// a broken photo_reference would otherwise leave the header with nothing (same
+// issue fixed on the itinerary page).
+function setHeaderPhoto() {
+    const header = document.querySelector('.exp-header');
+    if (!header) return;
+    const candidates = [...allRecs]
+        .sort((a, b) => ((b.rating||0)*(b.popularity_score||1)) - ((a.rating||0)*(a.popularity_score||1)))
+        .filter(r => r.photo_reference || r.photo_url)
+        .map(r => r.photo_reference
+            ? `/api/photo?ref=${encodeURIComponent(r.photo_reference)}&w=1600`
+            : r.photo_url);
+    (function tryNext(idx) {
+        if (idx >= candidates.length) return;   // none loaded — keep the default gradient
+        const probe = new Image();
+        probe.onload  = () => { header.style.backgroundImage = `url('${candidates[idx]}')`; };
+        probe.onerror = () => tryNext(idx + 1);
+        probe.src = candidates[idx];
+    })(0);
 }
 
 /* ─── TRENDING ─── */
@@ -393,7 +425,7 @@ function buildTrending() {
                 <h4 title="${r.name}">${r.name}</h4>
                 <div class="tc-meta">
                     <span>${r.rating ? '⭐ '+r.rating.toFixed(1) : 'No rating'}</span>
-                    <span>${r.entry_cost ? 'RM'+r.entry_cost.toFixed(0) : 'Free'}</span>
+                    <span>${r.entry_cost == null ? 'Price N/A' : (r.entry_cost ? 'RM'+r.entry_cost.toFixed(0) : 'Free')}</span>
                 </div>
             </div>`;
         card.addEventListener('click', () => toggleById(r.attraction_id, card));
@@ -418,8 +450,8 @@ function priceMatch(cost, filter) {
     cost = cost || 0;
     if (filter==='free') return cost === 0;
     if (filter==='budget') return cost > 0 && cost < 15;
-    if (filter==='mid') return cost >= 15 && cost <= 30;
-    if (filter==='premium') return cost > 30;
+    if (filter==='mid') return cost >= 15 && cost < 30;
+    if (filter==='premium') return cost >= 30;   // was `> 30`, which silently excluded every RM30 item
     return true;
 }
 
@@ -502,7 +534,7 @@ function buildCard(r) {
             <div class="att-meta">${starsHTML(r.rating)}</div>
             <div class="att-tags">
                 <span class="att-tag att-tag-free">${esc(cap(r.category))}</span>
-                <span class="att-tag" style="background:#f0fdf4;color:#15803d;font-weight:700;">${r.entry_cost ? 'RM ' + r.entry_cost.toFixed(0) : 'Free'}</span>
+                <span class="att-tag" style="background:#f0fdf4;color:#15803d;font-weight:700;">${r.entry_cost == null ? 'Price N/A' : (r.entry_cost ? 'RM ' + r.entry_cost.toFixed(0) : 'Free')}</span>
             </div>
             <button class="att-add-btn" onclick="event.stopPropagation();toggleById(${r.attraction_id},this.closest('.att-card'))">
                 ${sel ? 'Added to Plan' : 'Add to Plan'}
@@ -512,10 +544,24 @@ function buildCard(r) {
     return card;
 }
 
+function clearAllFilters() {
+    activeCat = ''; activePrice = ''; activeRating = 0;
+    document.querySelectorAll('#cat-pills .f-pill').forEach(b => b.classList.toggle('active', b.dataset.cat===''));
+    document.querySelectorAll('#price-pills .f-pill').forEach(b => b.classList.toggle('active', b.dataset.price===''));
+    document.querySelectorAll('#rating-pills .f-pill').forEach(b => b.classList.toggle('active', b.dataset.rating==='0'));
+    applyFilters();
+}
+
 function renderGrid() {
     const grid = document.getElementById('att-grid');
     if (!filtered.length) {
-        grid.innerHTML = `<div class="empty-state"><div class="big-icon">🔎</div><h3>No matches</h3><p>Try removing some filters.</p></div>`;
+        // Most attractions share very few distinct price/rating values (a real
+        // limitation of Google's free Places data, not a bug), so stacking
+        // Category + Price + Rating filters together can easily intersect to
+        // zero — a one-click way back out matters more here than elsewhere.
+        grid.innerHTML = `<div class="empty-state"><div class="big-icon">🔎</div><h3>No matches</h3>
+            <p>These filters together match nothing here. Try clearing one.</p>
+            <a href="#" onclick="clearAllFilters();return false;">Clear all filters</a></div>`;
         return;
     }
     grid.innerHTML = '';

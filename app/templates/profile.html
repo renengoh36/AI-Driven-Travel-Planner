@@ -123,6 +123,7 @@
         <div class="acct-row"><span class="acct-label">Name</span><span class="acct-value" id="acctName">—</span></div>
         <div class="acct-row"><span class="acct-label">Travel Persona</span><span class="acct-value blue" id="acctPersona">—</span></div>
         <div class="acct-row"><span class="acct-label">Member since</span><span class="acct-value">2025</span></div>
+        <p id="personaExplanation" style="font-size:1.4rem;color:#64748b;line-height:1.7;margin-top:1.6rem;padding-top:1.6rem;border-top:1px solid #f1f5f9;"></p>
     </div>
 </div>
 </div>
@@ -132,12 +133,47 @@
 <script>
 const INTEREST_OPTIONS = ['nature','food','history','shopping','adventure','relaxation'];
 
+// One paragraph per persona — keys must match PERSONA_LABELS in
+// app/modules/profiling.py exactly, since that's what the API returns.
+const PERSONA_EXPLANATIONS = {
+    'Nature Explorer':
+        "You're drawn to the outdoors over crowded landmarks — parks, trails, and scenic natural spots. " +
+        "With a mid-range budget and a taste for cooler, moderate climates, your recommendations prioritise " +
+        "nature reserves, viewpoints, and open-air experiences first.",
+    'Budget Adventure Seeker':
+        "You want excitement without the price tag. As a budget-conscious traveller who gravitates to warm " +
+        "destinations, your recommendations lean toward free and low-cost adventure activities, lively " +
+        "shopping streets, and adrenaline-friendly spots — high value over high price.",
+    'Culture & History Explorer':
+        "Museums, heritage sites, and local cuisine are what make a trip memorable to you. With a mid-range " +
+        "budget and warm-climate destinations, your recommendations surface historical landmarks and " +
+        "well-loved food spots first, pairing culture with the flavours that go with it.",
+    'Relaxation & Foodie':
+        "You travel to unwind and eat well, not to rush a checklist. On a tighter budget and comfortable in " +
+        "moderate climates, your recommendations favour relaxed dining, cafes, spas, and low-key experiences " +
+        "over high-tempo sightseeing.",
+    'Urban Shopping Explorer':
+        "City life is where you thrive — malls, boutiques, and vibrant urban districts. Across budgets, and " +
+        "especially in cooler climates, your recommendations prioritise shopping destinations and modern " +
+        "city attractions.",
+    'Luxury Culture Enthusiast':
+        "You seek refined experiences — fine dining, curated cultural sites, and premium comfort. With a " +
+        "luxury budget and a preference for warm destinations, your recommendations highlight top-rated " +
+        "historical and culinary experiences that match a higher standard of travel.",
+};
+
+function updatePersonaExplanation(label) {
+    document.getElementById('personaExplanation').textContent =
+        PERSONA_EXPLANATIONS[label] || '';
+}
+
 async function loadProfile() {
     const uid = localStorage.getItem('user_id');
     const name = localStorage.getItem('user_name') || '—';
     const persona = localStorage.getItem('persona') || '—';
     document.getElementById('acctName').textContent = name;
     document.getElementById('acctPersona').textContent = persona;
+    updatePersonaExplanation(persona);
     if (!uid) return;
 
     try {
@@ -195,11 +231,14 @@ async function savePreferences() {
 
         localStorage.setItem('budget_type', budget_type);
         // Clear recommendation cache so dashboard re-fetches with new persona
-        sessionStorage.removeItem('persona_recs_v3');
-        sessionStorage.removeItem('persona_recs_ts_v3');
+        // (cache keys are per-user — see dashboard.html — so uid must match)
+        sessionStorage.removeItem(`persona_recs_v3_${uid}`);
+        sessionStorage.removeItem(`persona_recs_ts_v3_${uid}`);
+        sessionStorage.removeItem(`persona_recs_persona_v3_${uid}`);
         if (data.profile?.persona_label) {
             localStorage.setItem('persona', data.profile.persona_label);
             document.getElementById('acctPersona').textContent = data.profile.persona_label;
+            updatePersonaExplanation(data.profile.persona_label);
         }
         const msg = document.getElementById('saveMsg');
         msg.classList.add('show');

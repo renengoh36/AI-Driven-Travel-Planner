@@ -1,0 +1,41 @@
+user,destination,persona,interests,budget,precision@5,recall@5,f1@5,relevant_in_pool,pool_size
+U01,Istanbul,Budget Adventure Seeker,nature+relaxation+history,budget,0.0,,,0,144
+U02,Barcelona,Relaxation & Foodie,relaxation,budget,0.0,,,0,134
+U03,Incheon,Budget Adventure Seeker,adventure+nature+shopping,budget,1.0,0.0413,0.0794,121,197
+U04,Mexico City,Relaxation & Foodie,food,budget,0.0,,,0,231
+U05,Manila,Relaxation & Foodie,nature+adventure+food,luxury,1.0,0.0427,0.082,117,207
+U06,Toronto,Nature Explorer,adventure+shopping+food,mid-range,1.0,0.0562,0.1064,89,246
+U07,Jakarta,Urban Shopping Explorer,nature+food,luxury,1.0,0.0568,0.1075,88,234
+U08,Guangzhou,Urban Shopping Explorer,history+food,budget,1.0,0.1515,0.2632,33,88
+U09,Tehran,Culture & History Explorer,nature,mid-range,1.0,0.1316,0.2326,38,182
+U10,London,Culture & History Explorer,history+adventure,mid-range,1.0,0.0532,0.101,94,241
+U11,Beijing,Culture & History Explorer,shopping+adventure+nature,mid-range,1.0,0.0893,0.1639,56,91
+U12,Lima,Luxury Culture Enthusiast,history+adventure+relaxation,luxury,1.0,0.0439,0.084,114,213
+U13,Shanghai,Culture & History Explorer,nature+relaxation+food,mid-range,0.8,0.1212,0.2105,33,97
+U14,Bogota,Nature Explorer,nature,mid-range,1.0,0.1351,0.2381,37,199
+U15,Yangon,Urban Shopping Explorer,relaxation+history,budget,0.0,,,0,176
+U16,Los Angeles,Relaxation & Foodie,food+history,luxury,1.0,0.0417,0.08,120,230
+U17,Dhaka,Relaxation & Foodie,nature+adventure+food,luxury,1.0,0.0495,0.0943,101,191
+U18,Kaohsiung,Nature Explorer,food,mid-range,1.0,0.2083,0.3448,24,224
+U19,Baghdad,Relaxation & Foodie,relaxation+adventure,budget,0.0,,,0,141
+U20,Sydney,Urban Shopping Explorer,nature+food,budget,0.0,,,0,221
+U21,Buenos Aires,Relaxation & Foodie,history+nature,budget,0.0,,,0,211
+U22,Mumbai,Nature Explorer,history+food+shopping,mid-range,1.0,0.0505,0.0962,99,213
+U23,Delhi,Budget Adventure Seeker,food+history,budget,0.0,,,0,214
+U24,Cairo,Relaxation & Foodie,adventure+relaxation+history,luxury,1.0,0.0532,0.101,94,189
+U25,Jeju,Culture & History Explorer,adventure+shopping,mid-range,1.0,0.1111,0.2,45,150
+U26,Nairobi,Culture & History Explorer,adventure,mid-range,1.0,0.1163,0.2083,43,164
+U27,Lahore,Relaxation & Foodie,nature,budget,0.0,,,0,185
+U28,Santiago,Nature Explorer,relaxation,mid-range,1.0,0.4545,0.625,11,199
+U29,Asuncion,Nature Explorer,shopping,mid-range,1.0,0.2778,0.4348,18,180
+U30,Munich,Luxury Culture Enthusiast,adventure+history,luxury,1.0,0.045,0.0862,111,217
+U31,Santo Domingo,Urban Shopping Explorer,relaxation+nature+history,luxury,1.0,0.0495,0.0943,101,202
+U32,Caracas,Culture & History Explorer,history,mid-range,1.0,0.122,0.2174,41,185
+U33,Colombo,Luxury Culture Enthusiast,nature+history,luxury,0.6,0.0286,0.0545,105,201
+U34,Lagos,Urban Shopping Explorer,nature+history+food,budget,0.0,,,0,171
+U35,Kyiv,Luxury Culture Enthusiast,adventure,luxury,1.0,0.0833,0.1538,60,200
+U36,Kathmandu,Urban Shopping Explorer,history+shopping+nature,budget,0.0,,,0,194
+U37,Helsinki,Relaxation & Foodie,food+nature,budget,0.0,,,0,206
+U38,Guatemala City,Urban Shopping Explorer,nature,luxury,1.0,0.1282,0.2273,39,189
+U39,Budapest,Budget Adventure Seeker,adventure,budget,0.0,,,0,209
+U40,Warsaw,Nature Explorer,shopping+adventure+food,mid-range,1.0,0.0575,0.1087,87,208

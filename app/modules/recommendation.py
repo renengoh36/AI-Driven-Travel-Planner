@@ -27,22 +27,39 @@ def encode_attraction(attraction):
     return np.array(vec, dtype=float).reshape(1, -1)
 
 
-def get_feedback_score(attraction_id, persona_label, db_session):
+def get_feedback_scores_batch(attraction_ids, persona_label, db_session):
+    """One query for every attraction's feedback score instead of one query per
+    attraction — get_feedback_score() below did N individual 3-table-join queries,
+    which was fine at hundreds of attractions but took 55+ seconds once the
+    catalog grew past ~39,000 (see /api/recommendations/persona timeout)."""
     from app.models import ItineraryRating, ItineraryItem, UserProfile
+    from collections import defaultdict
+
     rows = (
-        db_session.query(ItineraryRating.rating_score)
-        .join(ItineraryItem, ItineraryRating.itinerary_id == ItineraryItem.itinerary_id)
+        db_session.query(ItineraryItem.attraction_id, ItineraryRating.rating_score)
+        .join(ItineraryRating, ItineraryRating.itinerary_id == ItineraryItem.itinerary_id)
         .join(UserProfile, ItineraryRating.user_id == UserProfile.user_id)
         .filter(
-            ItineraryItem.attraction_id == attraction_id,
+            ItineraryItem.attraction_id.in_(attraction_ids),
             UserProfile.persona_label == persona_label,
         )
         .all()
     )
-    if not rows:
-        return 0.5
-    scores = [r.rating_score for r in rows]
-    return (sum(scores) / len(scores) - 1) / 4
+    scores_by_attraction = defaultdict(list)
+    for attraction_id, rating_score in rows:
+        scores_by_attraction[attraction_id].append(rating_score)
+
+    result = {}
+    for attraction_id in attraction_ids:
+        scores = scores_by_attraction.get(attraction_id)
+        result[attraction_id] = 0.5 if not scores else (sum(scores) / len(scores) - 1) / 4
+    return result
+
+
+def get_feedback_score(attraction_id, persona_label, db_session):
+    """Single-attraction version — kept for any other callers, but
+    recommend_attractions() below uses the batched version instead."""
+    return get_feedback_scores_batch([attraction_id], persona_label, db_session)[attraction_id]
 
 
 def recommend_attractions(
@@ -87,10 +104,10 @@ def recommend_attractions(
     # Algorithm 2: CB_hybrid = 0.7 × cosine_similarity + 0.3 × feedback_score
     sim_scores = cosine_similarity(user_vec_norm, att_vecs_norm)[0]
     persona = user_profile.get("persona_label", "")
-    feedback_scores = np.array([
-        get_feedback_score(a["attraction_id"], persona, db_session)
-        for a in attractions
-    ])
+    feedback_lookup = get_feedback_scores_batch(
+        [a["attraction_id"] for a in attractions], persona, db_session
+    )
+    feedback_scores = np.array([feedback_lookup[a["attraction_id"]] for a in attractions])
     hybrid_scores = 0.7 * sim_scores + 0.3 * feedback_scores
 
     def safe_norm(arr):

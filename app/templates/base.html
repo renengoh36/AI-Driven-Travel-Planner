@@ -125,15 +125,15 @@
 
         /* Hamburger button */
         .hamburger-btn {
-            position: fixed; top: 1.6rem; left: 1.6rem; z-index: 200;
+            position: fixed; top: 1.2rem; left: 1.2rem; z-index: 200;
             background: #fff; border: 2px solid #e2e8f0;
-            border-radius: 0.8rem; width: 4.4rem; height: 4.4rem;
+            border-radius: 0.7rem; width: 3.6rem; height: 3.6rem;
             display: none; align-items: center; justify-content: center;
             cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             transition: border-color .2s;
         }
         .hamburger-btn:hover { border-color: var(--pengo-blue); }
-        .hamburger-btn svg { width: 2rem; height: 2rem; }
+        .hamburger-btn svg { width: 1.6rem; height: 1.6rem; }
         body.app-page .hamburger-btn { display: flex; }
 
         /* App page header (top bar with search) */
@@ -445,6 +445,31 @@
         }
     }
     populateUserUI();
+
+    /* ─── Show the user's actual selected interests alongside the persona label —
+       the persona name is a cluster archetype, not a literal interest filter, so
+       without this a "Shopping" persona with zero shopping recs looks untailored
+       even when it's correctly matching the user's real chosen interests. ─── */
+    async function loadPersonaInterests() {
+        const uid = localStorage.getItem('user_id');
+        if (!uid) return;
+        try {
+            const res = await fetch(`/api/users/${uid}/profile`);
+            if (!res.ok) return;
+            const data = await res.json();
+            const interests = data.profile?.interests;
+            if (!Array.isArray(interests) || !interests.length) return;
+            const label = interests.map(i => i.charAt(0).toUpperCase() + i.slice(1)).join(', ');
+
+            const sp = document.getElementById('sidebar-persona');
+            if (sp) sp.insertAdjacentHTML('afterend',
+                `<div style="font-size:1.1rem;color:#94a3b8;margin-top:.2rem;">Interests: ${label}</div>`);
+
+            const tp = document.getElementById('topbar-persona');
+            if (tp) tp.title = `Based on interests: ${label}`;
+        } catch (e) { /* non-critical — persona label alone still shows */ }
+    }
+    loadPersonaInterests();
 
     /* ─── Top bar search ─── */
     function topbarSearch() {
