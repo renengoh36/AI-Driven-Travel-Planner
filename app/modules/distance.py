@@ -1,7 +1,5 @@
-
 import math
 import datetime
-
 
 EARTH_RADIUS_KM = 6371.0
 DAY_START_HOUR = 9                  # itinerary starts at 09:00
@@ -27,9 +25,8 @@ LUNCH_BREAK_HOUR      = 12
 LUNCH_BREAK_MIN       = 30
 LUNCH_DURATION_MINUTES = 60
 
-
+ # Calculates the great-circle distance between two geographic coordinates.
 def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """Returns great-circle distance in km between two points."""
     r = EARTH_RADIUS_KM
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
     dphi = math.radians(lat2 - lat1)
@@ -38,13 +35,8 @@ def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
     return 2 * r * math.asin(math.sqrt(a))
 
-
+ # Builds a pairwise distance matrix for the selected attractions.
 def distance_matrix(attractions: list) -> list:
-    """
-    Builds a symmetric n×n matrix of pairwise Haversine distances.
-    attractions: list of dicts with 'latitude' and 'longitude'.
-    Returns a 2D list.
-    """
     n = len(attractions)
     matrix = [[0.0] * n for _ in range(n)]
     for i in range(n):
@@ -57,13 +49,8 @@ def distance_matrix(attractions: list) -> list:
             matrix[j][i] = d
     return matrix
 
-
+ # Determines an efficient attraction sequence using the nearest-neighbour heuristic.
 def nearest_neighbour_route(attractions: list) -> list:
-    """
-    Nearest-neighbour heuristic for TSP.
-    Starts at index 0, greedily picks the closest unvisited attraction.
-    Returns the ordered list of attraction dicts.
-    """
     if not attractions:
         return []
     if len(attractions) == 1:
@@ -88,16 +75,8 @@ def nearest_neighbour_route(attractions: list) -> list:
 
     return [attractions[i] for i in route_indices]
 
-
+# Assigns visit times and order based on attraction duration and travel time.
 def assign_time_slots(ordered_attractions: list, day_number: int, visit_order_start: int = 1) -> list:
-    """
-    Assigns start_time, end_time, day_number, and visit_order to each attraction.
-
-    Improvements over naive chaining:
-      - Category-based visit durations (history=120 min, food=60 min, etc.)
-      - Travel buffer between consecutive attractions based on Haversine distance
-      - One 60-minute lunch break inserted when the clock first reaches 12:30
-    """
     items = []
     base_date  = datetime.date.today()
     current_dt = datetime.datetime.combine(base_date, datetime.time(DAY_START_HOUR, 0))
@@ -140,15 +119,8 @@ def assign_time_slots(ordered_attractions: list, day_number: int, visit_order_st
 
     return items
 
-
+# Splits attractions across travel days and generates optimised itinerary items.
 def build_itinerary_items(selected_attractions: list, travel_days: int) -> list:
-    """
-    Full pipeline: takes a flat list of selected attractions, splits them
-    across travel_days with route optimisation per day.
-
-    Returns a flat list of item dicts (day_number, attraction_id, visit_order,
-    start_time, end_time) ready to insert into ITINERARY_ITEMS.
-    """
     if not selected_attractions:
         return []
 

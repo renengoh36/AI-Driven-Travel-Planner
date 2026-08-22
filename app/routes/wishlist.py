@@ -7,6 +7,7 @@ wishlist_bp = Blueprint("wishlist", __name__)
 
 
 @wishlist_bp.route("/wishlist", methods=["GET"])
+ # Retrieves the user's saved wishlist attractions.
 def get_wishlist():
     user_id = request.args.get("user_id")
     if not user_id:
@@ -31,6 +32,7 @@ def get_wishlist():
 
 
 @wishlist_bp.route("/wishlist/ids", methods=["GET"])
+# Returns the attraction IDs saved in the user's wishlist.
 def get_wishlist_ids():
     """Lightweight endpoint — returns only the attraction_id list for a user."""
     user_id = request.args.get("user_id")
@@ -45,6 +47,7 @@ def get_wishlist_ids():
 
 
 @wishlist_bp.route("/wishlist", methods=["POST"])
+# Adds an attraction to the user's wishlist if it is not already saved.
 def add_to_wishlist():
     data = request.get_json(silent=True) or {}
     user_id      = data.get("user_id")
@@ -66,6 +69,7 @@ def add_to_wishlist():
 
 
 @wishlist_bp.route("/wishlist/<int:attraction_id>", methods=["DELETE"])
+ # Removes a selected attraction from the user's wishlist.
 def remove_from_wishlist(attraction_id):
     data = request.get_json(silent=True) or {}
     user_id = data.get("user_id")

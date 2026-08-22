@@ -1,14 +1,13 @@
 from __future__ import annotations
-
 import re
 import string
 
-# ── NLTK (optional, preferred) ────────────────────────────────────────────────
 try:
     import nltk  # type: ignore
     from nltk.tokenize import word_tokenize as _wt  # type: ignore
     from nltk.corpus import stopwords as _sw_corpus  # type: ignore
 
+    # Loads NLTK tokenisation and English stop words.
     def _load_nltk() -> tuple:
         """Download NLTK data if missing; return (tokeniser_fn, stopword_set)."""
         for pkg in ("punkt_tab", "punkt", "stopwords"):
@@ -28,7 +27,7 @@ except Exception:  # pragma: no cover
     _TOKENIZE, _SW_SET, _NLTK_OK = None, None, False
 
 
-# ── BUILT-IN STOP-WORD FALLBACK ───────────────────────────────────────────────
+# BUILT-IN STOP-WORD FALLBACK 
 _FALLBACK_SW = {
     "i", "me", "my", "we", "our", "you", "your", "he", "him", "his", "she",
     "her", "it", "its", "they", "them", "their", "what", "which", "who",
@@ -43,18 +42,16 @@ _FALLBACK_SW = {
     "than", "same", "own", "well", "even", "still", "back", "way", "now",
 }
 
-
+# Returns the available stop-word set.
 def _stopwords() -> set:
     return _SW_SET if _SW_SET is not None else _FALLBACK_SW
 
 
-# ── OPTION LISTS (must match profiling.py constants) ─────────────────────────
 INTEREST_OPTIONS = ["nature", "food", "history", "shopping", "adventure", "relaxation"]
 BUDGET_OPTIONS   = ["budget", "mid-range", "luxury"]
 WEATHER_OPTIONS  = ["warm", "cold", "moderate"]
 
-# ── KNOWN CITIES ──────────────────────────────────────────────────────────────
-# Covers the 10 seeded destinations + popular worldwide destinations
+#  KNOWN CITIES 
 KNOWN_CITIES: set[str] = {
     "tokyo", "paris", "kuala lumpur", "bali", "new york city", "new york",
     "rome", "bangkok", "london", "osaka", "sydney",
@@ -82,7 +79,7 @@ CITY_ALIASES: dict[str, str] = {
     "sg":    "Singapore",
 }
 
-# ── VOCABULARY MAPS ───────────────────────────────────────────────────────────
+# VOCABULARY MAPS 
 INTEREST_SYNONYMS: dict[str, list[str]] = {
     "nature":      ["nature", "outdoor", "outdoors", "park", "wildlife", "hiking",
                     "trekking", "forest", "mountain", "lake", "river", "scenic",
@@ -104,8 +101,6 @@ INTEREST_SYNONYMS: dict[str, list[str]] = {
 }
 
 BUDGET_SYNONYMS: dict[str, list[str]] = {
-    # check luxury and mid-range BEFORE budget: "budget" is also a common English
-    # noun (e.g. "my budget is mid-range") so it must not win over more specific terms.
     "luxury":    ["luxury", "luxurious", "premium", "expensive", "high-end",
                   "5-star", "five-star", "lavish", "splurge", "upscale",
                   "fancy", "first class", "vip"],
@@ -140,17 +135,8 @@ _SUGGEST_V = {"suggest", "recommend", "find", "show", "tell", "list", "give"}
 _SUGGEST_CTX = {"any", "good", "best", "top", "near", "nearby", "around", "where"}
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  PREPROCESSING
-# ═══════════════════════════════════════════════════════════════════════════════
-
+# Tokenises text and removes stop words and non-alphabetic tokens.
 def tokenise(text: str) -> list[str]:
-    """
-    Lowercase → tokenise → drop stop-words and non-alpha tokens.
-
-    Uses NLTK punkt if available; otherwise splits on whitespace after
-    stripping punctuation.
-    """
     text = text.lower().strip()
 
     if _TOKENIZE:
@@ -165,34 +151,22 @@ def tokenise(text: str) -> list[str]:
     return [t for t in raw_tokens if t.isalpha() and t not in sw]
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  ENTITY EXTRACTION
-# ═══════════════════════════════════════════════════════════════════════════════
-
+# Identifies the user's preferred budget type from the text.
 def extract_destination(text: str) -> str | None:
-    """
-    Return the canonical city name found in *text*, or None.
-
-    Strategy:
-    1. Check known aliases (kl → Kuala Lumpur).
-    2. Scan multi-word city names first (longest-match) to avoid partial hits.
-    """
     lower = text.lower()
 
     for alias, canonical in CITY_ALIASES.items():
         if re.search(r"\b" + re.escape(alias) + r"\b", lower):
             return canonical
 
-    # sort longest first so "new york city" wins over "new york"
     for city in sorted(KNOWN_CITIES, key=len, reverse=True):
         if re.search(r"\b" + re.escape(city) + r"\b", lower):
             return city.title()
 
     return None
 
-
+ # Identifies the user's preferred budget type from the text.
 def extract_budget_type(tokens: list[str], text: str) -> str | None:
-    """Return 'budget', 'mid-range', or 'luxury' if found in text."""
     lower = text.lower()
     for btype, synonyms in BUDGET_SYNONYMS.items():
         for syn in synonyms:
@@ -200,27 +174,16 @@ def extract_budget_type(tokens: list[str], text: str) -> str | None:
                 return btype
     return None
 
-
+# Extracts the number of travel days from the text.
 def extract_days(text: str) -> int | None:
-    """
-    Return an integer number of travel days from text, or None.
-    Accepts patterns like '5 days', '7 nights', '3-day trip'.
-    Clamps to [1, 30].
-    """
     m = re.search(r"\b(\d+)\s*(?:day|days|night|nights)\b", text.lower())
     if m:
         n = int(m.group(1))
         return n if 1 <= n <= 30 else None
     return None
 
-
+ # Identifies travel interests mentioned in the text.
 def extract_interests(tokens: list[str]) -> list[str]:
-    """
-    Return matched interest tags from INTEREST_OPTIONS.
-
-    Checks both single-token matches and multi-word synonym phrases
-    (using the joined token string for multi-word synonyms like 'street food').
-    """
     found: list[str] = []
     token_set = set(tokens)
     joined = " ".join(tokens)  # for multi-word synonyms
@@ -238,7 +201,7 @@ def extract_interests(tokens: list[str]) -> list[str]:
                 break
     return found
 
-
+# Identifies the user's preferred weather condition.
 def extract_weather(tokens: list[str], text: str) -> str | None:
     """Return 'warm', 'cold', or 'moderate' if found in text."""
     lower = text.lower()
@@ -248,14 +211,8 @@ def extract_weather(tokens: list[str], text: str) -> str | None:
                 return wtype
     return None
 
-
+# Extracts the place or attraction type requested by the user.
 def extract_place_keyword(text: str) -> str | None:
-    """
-    Extract the thing the user is searching for.
-    e.g. 'suggest ramen shop' → 'ramen shop'
-         'any good beach near Tokyo' → 'beach'
-         'find me a museum' → 'museum'
-    """
     lower = text.lower()
     patterns = [
         r"(?:suggest|recommend|find\s+me?|show\s+me?|give\s+me?)\s+(?:a\s+|an\s+|some\s+|any\s+|me\s+a\s+|me\s+some\s+)?(.+?)(?:\s+(?:in|at|near|around|for)\s+|$)",
@@ -272,12 +229,8 @@ def extract_place_keyword(text: str) -> str | None:
                 return kw
     return None
 
-
+# Extracts a 1-to-5 star rating from the text.
 def extract_rating(text: str) -> int | None:
-    """
-    Return a 1-5 star rating integer from text, or None.
-    Handles: '4 stars', '4/5', '4 out of 5', 'give it a 4'.
-    """
     m = re.search(
         r"\b([1-5])\s*(?:star|stars|out\s*of\s*5|\/5)\b",
         text.lower(),
@@ -293,19 +246,8 @@ def extract_rating(text: str) -> int | None:
     return None
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  INTENT DETECTION
-# ═══════════════════════════════════════════════════════════════════════════════
-
+ # Classifies the user's message into a supported chatbot intent.
 def detect_intent(tokens: list[str], text: str) -> str:
-    """
-    Classify user message into one of the supported intent labels.
-
-    Evaluation order (highest priority first):
-        greet → goodbye → help → rate_itinerary → generate_itinerary
-        → view_itinerary → update_destination → update_days → update_budget
-        → update_interests → update_weather → unknown
-    """
     token_set = set(tokens)
     lower     = text.lower()
 
@@ -405,34 +347,8 @@ HELP_TEXT = (
 )
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-#  MAIN ENTRY POINT
-# ═══════════════════════════════════════════════════════════════════════════════
-
+# Processes the user message and returns the detected intent, entities, updates, and reply.
 def process_message(text: str, context: dict | None = None) -> dict:
-    """
-    Process a single user message and return a structured response.
-
-    Args:
-        text:    Raw user message string.
-        context: Optional dict with current profile values:
-                 {"budget_type": str, "weather_pref": str, "interests": list[str]}
-
-    Returns:
-        {
-            "intent":   str,
-            "entities": {
-                "destination":  str | None,
-                "days":         int | None,
-                "budget_type":  str | None,
-                "weather_pref": str | None,
-                "interests":    list[str],
-                "rating":       int | None,
-            },
-            "updates":  dict,   # fields ready to PATCH into UserProfile
-            "reply":    str,    # HTML-safe bot reply
-        }
-    """
     ctx     = context or {}
     tokens  = tokenise(text)
     intent  = detect_intent(tokens, text)

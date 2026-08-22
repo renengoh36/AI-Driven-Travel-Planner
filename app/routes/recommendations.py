@@ -10,10 +10,7 @@ from app.models.attraction import Attraction
 from app.modules.recommendation import recommend_attractions
 from app.modules.behaviour import get_behaviour_weights, log_event
 
-# fetch_attractions.py lives at the project root (two levels up from app/routes/,
-# not three — the old sys.path.insert here pointed one level above the project
-# itself and only worked by accident because `python app.py` already puts the
-# project root on sys.path).
+
 try:
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
     import fetch_attractions as _fetch_mod
@@ -23,14 +20,12 @@ except ImportError:
 
 rec_bp = Blueprint("recommendations", __name__)
 
-
+# Normalises text to support case- and accent-insensitive matching.
 def _fold(s):
-    """Diacritic/case-insensitive fold so 'Istanbul' and 'İstanbul' compare equal —
-    catches spelling variants a plain SQL ILIKE can miss depending on DB collation."""
     decomposed = unicodedata.normalize("NFKD", (s or "").strip().casefold())
     return "".join(ch for ch in decomposed if not unicodedata.combining(ch))
 
-
+ # Retrieves attractions matching the requested city or country.
 def _query_by_destination(destination):
     resolved = _COUNTRY_ALIASES.get(destination.lower(), destination)
     rows = Attraction.query.filter(
@@ -59,11 +54,8 @@ def _query_by_destination(destination):
         )
     ).all()
 
-
+ # Fetches and stores attraction data from Google Places for an uncached city.
 def _cache_attractions_for_city(city):
-    """Live-fetch a city from Google Places when it isn't already seeded.
-    Restored from git history (deleted in a prior commit without updating the
-    caller) — see fetch_attractions.py for the Google Places pipeline itself."""
     if not _HAS_FETCH:
         return 0
     api_key = current_app.config.get("GOOGLE_API_KEY", "")
@@ -100,6 +92,7 @@ def _cache_attractions_for_city(city):
 
 
 @rec_bp.route("/recommendations", methods=["POST"])
+# Retrieves and ranks personalised attractions for a selected destination.
 def get_recommendations():
     data        = request.get_json(silent=True) or {}
     user_id     = data.get("user_id")
@@ -159,6 +152,7 @@ def get_recommendations():
 
 
 @rec_bp.route("/photo", methods=["GET"])
+# Retrieves an attraction photo from Google Places and caches it locally.
 def proxy_photo():
     ref = request.args.get("ref", "").strip()
     w   = request.args.get("w", "600")
@@ -187,13 +181,8 @@ def proxy_photo():
     except Exception:
         abort(502)
 
-
+ # Saves a retrieved attraction photo locally and updates its database reference.
 def _cache_photo_locally(ref, content, content_type):
-    """Every photo that's ever successfully shown gets permanently saved and the
-    owning attraction's photo_reference swapped for the local file — so coverage
-    grows on its own as real traffic hits it, instead of needing every possible
-    city pre-cached (photo_reference tokens are known to expire; a local copy
-    never does). Best-effort: any failure here must never break the photo response."""
     try:
         attraction = Attraction.query.filter_by(photo_reference=ref).first()
         if not attraction:
@@ -228,12 +217,8 @@ _NON_CITY_LABELS = {
     "united kingdom", "germany", "new zealand", "australia", "indonesia",
 }
 
-
+# Cleans and deduplicates city data for display in the destination selector.
 def _clean_cities(rows):
-    """De-junk and de-duplicate (city, country) rows for display: drop region/
-    country-as-city labels, merge spelling variants like 'İstanbul'/'Istanbul'
-    (keeping whichever spelling is most common), keep the first country seen
-    per city."""
     counts, spelling_counts, country_for = {}, {}, {}
     for city, country in rows:
         if not city:
@@ -258,6 +243,7 @@ def _clean_cities(rows):
 
 
 @rec_bp.route("/cities", methods=["GET"])
+# Retrieves available cities and countries for destination selection.
 def get_cities():
     country = request.args.get("country", "").strip()
     if country:
@@ -277,6 +263,7 @@ def get_cities():
 
 
 @rec_bp.route("/recommendations/persona", methods=["GET"])
+# Generates personalised recommendations based on the user's profile and behaviour.
 def persona_recommendations():
     user_id = request.args.get("user_id")
     if not user_id:

@@ -41,11 +41,6 @@
 }
 .persona-dot { width:.65rem; height:.65rem; border-radius:50%; background:#60a5fa; animation:pdot 2s infinite; }
 @keyframes pdot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
-.hero-stats { display:flex; margin-top:3.6rem; }
-.hero-stat { padding:0 2.8rem 0 0; display:flex; flex-direction:column; gap:.3rem; border-right:1px solid rgba(255,255,255,.12); margin-right:2.8rem; }
-.hero-stat:last-child { border-right:none; margin-right:0; }
-.hero-stat-n { font-size:2.8rem; font-weight:900; color:#fff; line-height:1; }
-.hero-stat-l { font-size:1.15rem; font-weight:600; color:rgba(255,255,255,.45); text-transform:uppercase; letter-spacing:.08em; }
 
 /* ── SEARCH CARD ── */
 .search-card { background:#fff; border-radius:1.6rem; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,.14),0 4px 16px rgba(0,0,0,.06); margin-top:-5.2rem; position:relative; z-index:10; }
@@ -190,11 +185,6 @@
         <p class="dash-hero-sub">Your personalised travel planner — discover attractions ranked just for you.</p>
         <div id="persona-chip" class="persona-chip" style="display:none;">
             <span class="persona-dot"></span><span id="persona-text"></span>
-        </div>
-        <div class="hero-stats" id="hero-stats" style="display:none;">
-            <div class="hero-stat"><span class="hero-stat-n" id="stat-total">—</span><span class="hero-stat-l">Attractions</span></div>
-            <div class="hero-stat"><span class="hero-stat-n" id="stat-cities">—</span><span class="hero-stat-l">Cities</span></div>
-            <div class="hero-stat"><span class="hero-stat-n">AI</span><span class="hero-stat-l">Personalised</span></div>
         </div>
     </div>
 </div>
@@ -507,9 +497,12 @@ let availableCities = [], selectedCities = new Set();
 // case is still shared per-tab-group) could silently serve one user's cached
 // recommendations to a different user whenever the persona-label bust check
 // didn't catch it (e.g. bfcache restoring the page without re-running JS).
-const CACHE_KEY      = `persona_recs_v3_${userId}`;
-const CACHE_TS       = `persona_recs_ts_v3_${userId}`;
-const CACHE_PERSONA  = `persona_recs_persona_v3_${userId}`;
+// v4 — bumped so browsers holding a v3 cache (recommendations generated
+// before the budget/interest-decoupling fix in recommendation.py) fetch a
+// fresh, correctly-diversified set instead of showing stale stats/results.
+const CACHE_KEY      = `persona_recs_v4_${userId}`;
+const CACHE_TS       = `persona_recs_ts_v4_${userId}`;
+const CACHE_PERSONA  = `persona_recs_persona_v4_${userId}`;
 const CACHE_TTL      = 5 * 60 * 1000;
 
 async function loadPersonaRecs() {
@@ -557,10 +550,6 @@ async function loadPersonaRecs() {
 loadPersonaRecs();
 
 function updateHeroStats() {
-    const cities = [...new Set(allRecs.map(r=>r.city).filter(Boolean))];
-    document.getElementById('stat-total').textContent = allRecs.length;
-    document.getElementById('stat-cities').textContent = cities.length;
-    document.getElementById('hero-stats').style.display = 'flex';
     document.getElementById('result-count-wrap').style.display = 'inline-block';
 }
 

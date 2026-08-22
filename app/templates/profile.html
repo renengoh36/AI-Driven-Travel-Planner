@@ -232,9 +232,9 @@ async function savePreferences() {
         localStorage.setItem('budget_type', budget_type);
         // Clear recommendation cache so dashboard re-fetches with new persona
         // (cache keys are per-user — see dashboard.html — so uid must match)
-        sessionStorage.removeItem(`persona_recs_v3_${uid}`);
-        sessionStorage.removeItem(`persona_recs_ts_v3_${uid}`);
-        sessionStorage.removeItem(`persona_recs_persona_v3_${uid}`);
+        sessionStorage.removeItem(`persona_recs_v4_${uid}`);
+        sessionStorage.removeItem(`persona_recs_ts_v4_${uid}`);
+        sessionStorage.removeItem(`persona_recs_persona_v4_${uid}`);
         if (data.profile?.persona_label) {
             localStorage.setItem('persona', data.profile.persona_label);
             document.getElementById('acctPersona').textContent = data.profile.persona_label;

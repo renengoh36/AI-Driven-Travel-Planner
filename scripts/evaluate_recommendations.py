@@ -31,7 +31,7 @@ NON_CITY_LABELS = {
     "united kingdom", "germany", "new zealand", "australia", "indonesia",
 }
 
-
+# Determines the budget tier corresponding to an attraction's entry cost.
 def cost_tier(cost):
     """Mirrors encode_attraction()'s tiering in app/modules/recommendation.py."""
     cost = cost or 0
@@ -41,13 +41,14 @@ def cost_tier(cost):
         return "mid-range"
     return "luxury"
 
-
+ # Checks whether an attraction matches the user's interest and budget criteria.
 def is_relevant(attraction, profile):
     category_ok = (attraction.get("category") or "").lower() in profile["interests"]
     budget_ok = BUDGET_RANK[cost_tier(attraction.get("entry_cost"))] <= BUDGET_RANK[profile["budget_type"]]
     return category_ok and budget_ok
 
 
+ # Generates synthetic user profiles for recommendation evaluation.
 def build_test_profiles(n, seed=42):
     rng = random.Random(seed)
     profiles = []
@@ -67,19 +68,13 @@ def build_test_profiles(n, seed=42):
     return profiles
 
 
+# Normalises city names to merge spelling and accent variations.
 def _fold_key(name):
-    """casefold() alone does NOT merge 'İstanbul'/'Istanbul' — Turkish capital İ
-    casefolds to 'i' + a combining dot-above (U+0307), not plain 'i'. Stripping
-    combining marks after NFKD normalization collapses both to 'istanbul'."""
     decomposed = unicodedata.normalize("NFKD", name.strip().casefold())
     return "".join(ch for ch in decomposed if not unicodedata.combining(ch))
 
-
+# Identifies valid searchable cities from the attraction database.
 def pick_destinations(limit=None):
-    """Discover every genuine, searchable city in the DB — not just the 10 on the
-    dashboard — while filtering out NON_CITY_LABELS and merging spelling variants
-    of the same city (e.g. 'İstanbul' vs 'Istanbul') so they aren't double-counted
-    as two destinations."""
     rows = db.session.query(Attraction.city, Attraction.country).all()
     counts, spelling_counts = {}, {}
     for city, country in rows:
@@ -101,6 +96,7 @@ def pick_destinations(limit=None):
     return verified[:limit] if limit else verified
 
 
+# Calculates Precision, Recall, and F1 for the recommended attractions.
 def precision_recall_f1(topk, pool, profile):
     relevant_in_topk = [a for a in topk if is_relevant(a, profile)]
     precision = len(relevant_in_topk) / len(topk) if topk else 0.0
@@ -114,6 +110,7 @@ def precision_recall_f1(topk, pool, profile):
     return precision, recall, f1, len(relevant_pool)
 
 
+ # Removes duplicate attractions with the same name and city.
 def _dedupe(attractions_db):
     """Same dedup POST /api/recommendations applies before ranking."""
     seen, unique = set(), []
@@ -125,6 +122,7 @@ def _dedupe(attractions_db):
     return unique
 
 
+ # Runs the recommendation evaluation and saves the per-profile results.
 def run(k=5, n_profiles=24):
     app = create_app()
     with app.app_context():

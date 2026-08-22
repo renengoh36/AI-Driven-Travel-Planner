@@ -3,7 +3,7 @@
 
 {% block head %}
 <style>
-.s-trips { padding: 4rem 0 8rem; }
+.s-trips { padding: 8rem 0 8rem; }  /* top must clear the fixed 6rem .app-topbar */
 .trips-header { margin-bottom: 4rem; }
 .trips-header h1 { font-size: 3.2rem; font-weight: 900; color: #0f172a; margin-bottom: .6rem; }
 .trips-header p  { font-size: 1.6rem; color: #64748b; }
@@ -127,7 +127,7 @@ async function loadTrips() {
 }
 
 async function viewTrip(id) {
-    const res  = await fetch(`/api/itinerary/${id}`);
+    const res  = await fetch(`/api/itinerary/${id}?user_id=${userId}`);
     const data = await res.json();
     sessionStorage.setItem('itinerary', JSON.stringify(data));
     window.location.href = '/itinerary';

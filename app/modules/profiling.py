@@ -27,7 +27,7 @@ PERSONA_LABELS = {
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "data", "kmeans_model.pkl")
 
-
+# Encodes user preferences and behavioural weights into a feature vector.
 def encode_user(budget_type, weather_pref, interests, behaviour_weights=None):
     # 12-dim vector: [budget(3), weather(3), interests(6)]
     vec = [1.0 if budget_type == b else 0.0 for b in BUDGET_OPTIONS]
@@ -39,7 +39,7 @@ def encode_user(budget_type, weather_pref, interests, behaviour_weights=None):
         vec.append(base)
     return np.array(vec, dtype=float).reshape(1, -1)
 
-
+ # Trains and saves the K-Means clustering model using user feature vectors.
 def train_model(training_data, n_clusters=6, random_state=42):
     X = normalize(np.vstack(training_data))
     model = KMeans(n_clusters=n_clusters, random_state=random_state, n_init=10)
@@ -49,14 +49,14 @@ def train_model(training_data, n_clusters=6, random_state=42):
         pickle.dump(model, f)
     return model
 
-
+ # Loads the trained K-Means model from the saved model file.
 def load_model():
     if not os.path.exists(MODEL_PATH):
         raise FileNotFoundError(f"K-Means model not found at {MODEL_PATH}.")
     with open(MODEL_PATH, "rb") as f:
         return pickle.load(f)
 
-
+# Assigns the user to a traveller persona using the trained K-Means model.
 def assign_persona(budget_type, weather_pref, interests):
     model = load_model()
     vec = normalize(encode_user(budget_type, weather_pref, interests))

@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity as sk_cosine
 
-
+ # Builds a user-attraction rating matrix from itinerary feedback data.
 def build_user_item_matrix(db_session):
     from app.models.itinerary_rating import ItineraryRating
     from app.models.itinerary_item import ItineraryItem
@@ -38,7 +38,7 @@ def build_user_item_matrix(db_session):
 
     return matrix, user_index, att_index
 
-
+# Calculates attraction scores based on ratings from similar users.
 def get_collaborative_scores(target_user_id, attraction_ids, db_session, k=10):
     neutral = {aid: 0.5 for aid in attraction_ids}
 

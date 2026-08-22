@@ -1,4 +1,4 @@
-# Integration Tests — API endpoints. Flask test client + in-memory SQLite (no external MySQL needed); fresh data seeded per test class in setUpClass(). 20 cases: TC01-05 itinerary/generate, TC06-09 itinerary/<id>, TC10-12 itinerary/<id>/rate, TC13-16 users/<id>/preferences, TC17-20 chat.
+# Integration Tests — API endpoints. Flask test client + in-memory SQLite (no external MySQL needed); fresh data seeded per test class in setUpClass(). TC01-05 itinerary/generate, TC06-09 itinerary/<id>, TC10-12 itinerary/<id>/rate, TC13-16 users/<id>/preferences, TC17-20 chat, TC21-23 register+onboarding, TC24-25 destination search, TC26-27 recommendation generation, TC28-29 behaviour logging, TC30 rating-to-feedback integration.
 
 import sys
 import os
@@ -23,16 +23,23 @@ _ATTRACTIONS = [
     {"attraction_id": 1, "name": "Twin Towers", "city": "Kuala Lumpur",
      "country": "Malaysia", "category": "history",
      "latitude": 3.1579, "longitude": 101.7116,
-     "rating": 4.5, "entry_cost": 50.0, "popularity_score": 9000},
+     "rating": 4.5, "entry_cost": 50.0, "popularity_score": 9000,
+     "photo_url": "/static/images/placeholder.jpg"},
     {"attraction_id": 2, "name": "Batu Caves",  "city": "Kuala Lumpur",
      "country": "Malaysia", "category": "history",
      "latitude": 3.2379, "longitude": 101.6840,
-     "rating": 4.3, "entry_cost": 0.0, "popularity_score": 7500},
+     "rating": 4.3, "entry_cost": 0.0, "popularity_score": 7500,
+     "photo_url": "/static/images/placeholder.jpg"},
     {"attraction_id": 3, "name": "KLCC Park",   "city": "Kuala Lumpur",
      "country": "Malaysia", "category": "nature",
      "latitude": 3.1534, "longitude": 101.7139,
-     "rating": 4.1, "entry_cost": 0.0, "popularity_score": 6000},
+     "rating": 4.1, "entry_cost": 0.0, "popularity_score": 6000,
+     "photo_url": "/static/images/placeholder.jpg"},
 ]
+# Note: recommend_attractions() candidates are pre-filtered to attractions that
+# have a photo_reference or photo_url (see recommendations.py) — every fixture
+# attraction needs one, or /api/recommendations and /api/recommendations/persona
+# will silently return an empty list regardless of what's seeded.
 
 
 def _create_test_user(db, models):
@@ -185,8 +192,8 @@ class TestGetItinerary(BaseTestCase):
         cls.itin_id = rv.get_json()["itinerary_id"]
 
     def test_TC06_get_existing_itinerary_returns_200(self):
-        """EP: valid itinerary_id → 200 + full details."""
-        rv = self.client.get(f"/api/itinerary/{self.itin_id}")
+        """EP: valid itinerary_id + owning user_id → 200 + full details."""
+        rv = self.client.get(f"/api/itinerary/{self.itin_id}?user_id={self.user_id}")
         self.assertEqual(rv.status_code, 200)
         data = rv.get_json()
         self.assertEqual(data["itinerary_id"], self.itin_id)
@@ -194,12 +201,12 @@ class TestGetItinerary(BaseTestCase):
 
     def test_TC07_get_nonexistent_itinerary_returns_404(self):
         """EP: unknown id → 404."""
-        rv = self.client.get("/api/itinerary/99999")
+        rv = self.client.get(f"/api/itinerary/99999?user_id={self.user_id}")
         self.assertEqual(rv.status_code, 404)
 
     def test_TC08_get_itinerary_items_have_attraction_details(self):
         """EP: each item in response contains nested attraction dict."""
-        rv = self.client.get(f"/api/itinerary/{self.itin_id}")
+        rv = self.client.get(f"/api/itinerary/{self.itin_id}?user_id={self.user_id}")
         for item in rv.get_json()["items"]:
             self.assertIn("attraction", item,
                           msg="Each item must include nested attraction info")
@@ -207,10 +214,20 @@ class TestGetItinerary(BaseTestCase):
 
     def test_TC09_get_itinerary_response_has_required_fields(self):
         """EP: response body must include all top-level fields."""
-        rv   = self.client.get(f"/api/itinerary/{self.itin_id}")
+        rv   = self.client.get(f"/api/itinerary/{self.itin_id}?user_id={self.user_id}")
         data = rv.get_json()
         for field in ("itinerary_id", "destination", "travel_days", "items"):
             self.assertIn(field, data, msg=f"Field '{field}' must be present")
+
+    def test_TC09b_get_itinerary_missing_user_id_returns_400(self):
+        """EP: no user_id supplied → 400 (ownership cannot be checked)."""
+        rv = self.client.get(f"/api/itinerary/{self.itin_id}")
+        self.assertEqual(rv.status_code, 400)
+
+    def test_TC09c_get_itinerary_wrong_owner_returns_403(self):
+        """BVA: user_id supplied but does not own the itinerary → 403."""
+        rv = self.client.get(f"/api/itinerary/{self.itin_id}?user_id=999999")
+        self.assertEqual(rv.status_code, 403)
 
 
 # TC10–TC12  POST /api/itinerary/<id>/rate
@@ -329,6 +346,171 @@ class TestChatEndpoint(BaseTestCase):
         data = rv.get_json()
         self.assertEqual(data["entities"]["destination"], "Tokyo")
         self.assertEqual(data["intent"], "update_destination")
+
+
+# TC21–TC23  POST /api/users/register → POST /api/users/onboarding
+class TestRegistrationAndPersona(BaseTestCase):
+    """Covers Table 5.7's 'User registration and persona assignment' scenario:
+    auth.py -> profiling.py -> user_profiles."""
+
+    def test_TC21_register_new_user_returns_201(self):
+        """EP: valid registration payload → 201 + new user_id."""
+        rv = self.post("/api/users/register", {
+            "full_name": "Integration Tester",
+            "email":     "integration.tester@pengo.com",
+            "password":  "TestPass123",
+        })
+        self.assertEqual(rv.status_code, 201)
+        self.assertIn("user_id", rv.get_json())
+
+    def test_TC22_onboarding_assigns_and_persists_persona(self):
+        """EP: register then submit onboarding → persona assigned and stored in user_profiles."""
+        reg = self.post("/api/users/register", {
+            "full_name": "Persona Tester",
+            "email":     "persona.tester@pengo.com",
+            "password":  "TestPass123",
+        })
+        new_user_id = reg.get_json()["user_id"]
+
+        rv = self.post("/api/users/onboarding", {
+            "user_id":      new_user_id,
+            "budget_type":  "luxury",
+            "weather_pref": "warm",
+            "interests":    ["food", "history"],
+        })
+        self.assertEqual(rv.status_code, 200)
+        data = rv.get_json()
+        self.assertIn("persona_label", data)
+        self.assertIsInstance(data["persona_label"], str)
+        self.assertGreater(len(data["persona_label"]), 0,
+                           msg="Onboarding must assign a non-empty persona label")
+        self.assertEqual(data["profile"]["budget_type"], "luxury",
+                         msg="Submitted preferences must be persisted to user_profiles")
+
+    def test_TC23_duplicate_email_returns_409(self):
+        """BVA: registering the same email twice → second attempt returns 409."""
+        payload = {"full_name": "Dup Tester", "email": "dup.tester@pengo.com", "password": "TestPass123"}
+        first  = self.post("/api/users/register", payload)
+        second = self.post("/api/users/register", payload)
+        self.assertEqual(first.status_code, 201)
+        self.assertEqual(second.status_code, 409)
+
+
+# TC24–TC25  POST /api/recommendations — destination search and attraction retrieval
+class TestDestinationSearchAndFetch(BaseTestCase):
+    """Covers Table 5.7's 'Destination search and attraction fetch' scenario:
+    recommendations.py -> attractions. Exercises the local-database retrieval path;
+    the live Google Places fetch path (used only when a destination has zero seeded
+    attractions) requires a real API key and is verified manually — see the
+    Attraction Data Management module's screenshot evidence rather than here."""
+
+    def test_TC24_search_known_destination_returns_seeded_attractions(self):
+        """EP: destination already has seeded attractions → 200 + those attractions returned."""
+        rv = self.post("/api/recommendations", {
+            "user_id":     self.user_id,
+            "destination": "Kuala Lumpur",
+        })
+        self.assertEqual(rv.status_code, 200)
+        data = rv.get_json()
+        self.assertEqual(data["destination"], "Kuala Lumpur")
+        returned_names = {r["name"] for r in data["recommendations"]}
+        seeded_names = {a["name"] for a in _ATTRACTIONS}
+        self.assertTrue(returned_names & seeded_names,
+                        msg="Response must include at least one of the seeded attractions")
+
+    def test_TC25_search_unknown_destination_without_api_key_returns_404(self):
+        """EP: destination with no seeded data and no Google API key configured
+        (test environment) → 404, confirming the live-fetch fallback is reached
+        and fails gracefully rather than crashing."""
+        rv = self.post("/api/recommendations", {
+            "user_id":     self.user_id,
+            "destination": "Nowhereville",
+        })
+        self.assertEqual(rv.status_code, 404)
+
+
+# TC26–TC27  GET /api/recommendations/persona — full hybrid scoring pipeline
+class TestRecommendationGeneration(BaseTestCase):
+    """Covers Table 5.7's 'Recommendation generation' scenario:
+    recommendation.py -> collaborative filtering -> database."""
+
+    def test_TC26_persona_recommendations_returns_ranked_list(self):
+        """EP: valid user_id → 200 + non-empty ranked recommendation list."""
+        rv = self.client.get(f"/api/recommendations/persona?user_id={self.user_id}")
+        self.assertEqual(rv.status_code, 200)
+        recs = rv.get_json()["recommendations"]
+        self.assertGreater(len(recs), 0, msg="Should return at least one recommendation")
+
+    def test_TC27_each_result_carries_all_scoring_components(self):
+        """EP: every returned attraction must expose the individual sub-scores that
+        make up Algorithm 4's final ranking — proving CB, CF, and feedback all ran."""
+        rv = self.client.get(f"/api/recommendations/persona?user_id={self.user_id}")
+        recs = rv.get_json()["recommendations"]
+        for field in ("recommendation_score", "similarity_score", "cf_score", "feedback_score"):
+            self.assertIn(field, recs[0], msg=f"'{field}' must be present on each result")
+
+
+# TC28–TC29  POST /api/behaviour/log
+class TestBehaviourLogging(BaseTestCase):
+    """Covers Table 5.7's 'Behaviour logging' scenario: Behaviour Module -> user_behaviour."""
+
+    def test_TC28_log_valid_event_returns_200(self):
+        """EP: valid search event → 200 + logged status."""
+        rv = self.post("/api/behaviour/log", {
+            "user_id":    self.user_id,
+            "event_type": "attraction_add",
+            "category":   "food",
+        })
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(rv.get_json()["status"], "logged")
+
+    def test_TC29_invalid_event_type_returns_400(self):
+        """EP: event_type outside the allowed set → 400 Bad Request."""
+        rv = self.post("/api/behaviour/log", {
+            "user_id":    self.user_id,
+            "event_type": "not_a_real_event",
+        })
+        self.assertEqual(rv.status_code, 400)
+
+
+# TC30  Rating submission integrated with the recommendation feedback mechanism
+class TestRatingFeedbackIntegration(BaseTestCase):
+    """Covers the second half of Table 5.7's 'Rating submission' scenario:
+    itinerary_ratings -> recommendation.py — verifies a submitted rating is not
+    just stored, but actually changes what get_feedback_scores_batch() returns
+    for that attraction and persona."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        with cls.app.app_context():
+            cls.persona_label = cls.db.session.merge(cls.profile).persona_label
+        rv = cls.client.post(
+            "/api/itinerary/generate",
+            data=json.dumps({
+                "user_id": cls.user_id, "destination": "Kuala Lumpur",
+                "attraction_ids": [1], "travel_days": 1,
+            }),
+            content_type="application/json",
+        )
+        cls.itin_id = rv.get_json()["itinerary_id"]
+
+    def test_TC30_rating_changes_feedback_score_for_that_persona(self):
+        from app.modules.recommendation import get_feedback_scores_batch
+
+        with self.app.app_context():
+            before = get_feedback_scores_batch([1], self.persona_label, self.db.session)[1]
+        self.assertEqual(before, 0.5, msg="No ratings yet → neutral default")
+
+        rv = self.post(f"/api/itinerary/{self.itin_id}/rate", {
+            "user_id": self.user_id, "rating_score": 5,
+        })
+        self.assertEqual(rv.status_code, 201)
+
+        with self.app.app_context():
+            after = get_feedback_scores_batch([1], self.persona_label, self.db.session)[1]
+        self.assertGreater(after, before,
+                           msg="A 5-star rating must raise the feedback score above neutral")
 
 
 if __name__ == "__main__":

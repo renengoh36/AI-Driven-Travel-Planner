@@ -9,6 +9,7 @@ from .user_behaviour import UserBehaviour
 from .attraction_feedback import AttractionFeedback
 from .wishlist import Wishlist
 
+# Exports the database instance and model classes.
 __all__ = [
     "db",
     "User",

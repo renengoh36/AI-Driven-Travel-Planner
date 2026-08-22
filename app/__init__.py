@@ -3,6 +3,7 @@ from .config import Config
 from .models.db import db
 from .models import *
 
+# Creates and configures the Flask application with its database and blueprints.
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)

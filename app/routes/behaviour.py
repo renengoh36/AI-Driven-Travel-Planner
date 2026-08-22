@@ -1,14 +1,3 @@
-"""
-Behaviour Logging Route — POST /api/behaviour/log
-
-Called by the frontend to record user interaction events that cannot be
-captured server-side (e.g. adding an attraction to the plan before the
-itinerary is generated).
-
-After a 'rating' event, the profile is automatically re-profiled so that
-the next recommendation request reflects the updated dynamic interests.
-"""
-
 from flask import Blueprint, request, jsonify
 from app.models.db import db
 from app.modules.behaviour import log_event, update_user_dynamic_interests
@@ -19,19 +8,8 @@ _VALID_EVENTS = {"search", "attraction_add", "itinerary_generate", "rating"}
 
 
 @beh_bp.route("/behaviour/log", methods=["POST"])
+# Logs a user behaviour event and updates dynamic interests after a rating.
 def log_behaviour():
-    """
-    POST /api/behaviour/log
-
-    Body (JSON):
-        user_id      : int          (required)
-        event_type   : str          (required) — search | attraction_add |
-                                                  itinerary_generate | rating
-        category     : str          (optional) — attraction category
-        destination  : str          (optional) — destination string
-        attraction_id: int          (optional)
-        rating_score : int 1-5      (optional, required when event_type=rating)
-    """
     data       = request.get_json(silent=True) or {}
     user_id    = data.get("user_id")
     event_type = data.get("event_type", "").strip()

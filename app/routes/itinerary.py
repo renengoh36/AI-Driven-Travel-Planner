@@ -1,12 +1,3 @@
-"""
-Itinerary route — POST /api/itinerary/generate
-
-Body: { user_id, destination, attraction_ids (list), travel_days }
-
-Runs Module 4 (Haversine + nearest-neighbour) and persists the result
-as ITINERARIES + ITINERARY_ITEMS rows.
-"""
-
 from flask import Blueprint, request, jsonify, current_app
 from app.models.db import db
 from app.models.user import User
@@ -19,6 +10,7 @@ itinerary_bp = Blueprint("itinerary", __name__)
 
 
 @itinerary_bp.route("/generate", methods=["POST"])
+# Generates and saves an optimised day-by-day itinerary for the selected attractions.
 def generate_itinerary():
     data = request.get_json(silent=True) or {}
     user_id = data.get("user_id")
@@ -111,6 +103,7 @@ def generate_itinerary():
 
 
 @itinerary_bp.route("/my", methods=["GET"])
+ # Retrieves the user's saved itineraries with their schedules and ratings.
 def get_my_itineraries():
     """GET /api/itinerary/my?user_id=X — all itineraries for a user, newest first."""
     from app.models.itinerary_rating import ItineraryRating
@@ -167,11 +160,18 @@ def get_my_itineraries():
 
 
 @itinerary_bp.route("/<int:itinerary_id>", methods=["GET"])
+ # Retrieves a specific itinerary and verifies ownership before returning its details.
 def get_itinerary(itinerary_id):
-    """GET /api/itinerary/<id> — fetch a saved itinerary with all items."""
+    """GET /api/itinerary/<id>?user_id=X — fetch a saved itinerary with all items (owner only)."""
+    user_id = request.args.get("user_id")
+    if not user_id:
+        return jsonify({"error": "user_id required"}), 400
+
     itinerary = db.session.get(Itinerary, itinerary_id)
     if not itinerary:
         return jsonify({"error": "Itinerary not found."}), 404
+    if str(itinerary.user_id) != str(user_id):
+        return jsonify({"error": "Unauthorized"}), 403
 
     att_ids = [item.attraction_id for item in itinerary.items]
     attractions = Attraction.query.filter(Attraction.attraction_id.in_(att_ids)).all()
@@ -195,6 +195,7 @@ def get_itinerary(itinerary_id):
 
 
 @itinerary_bp.route("/<int:itinerary_id>", methods=["DELETE"])
+# Deletes a saved itinerary after verifying the user's ownership.
 def delete_itinerary(itinerary_id):
     """DELETE /api/itinerary/<id> — remove a saved itinerary (owner only)."""
     data = request.get_json(silent=True) or {}
@@ -213,6 +214,7 @@ def delete_itinerary(itinerary_id):
 
 
 @itinerary_bp.route("/<int:itinerary_id>/dislike-attraction", methods=["POST"])
+ # Records a disliked attraction and replaces it with a suitable alternative.
 def dislike_attraction(itinerary_id):
     """
     POST /api/itinerary/<id>/dislike-attraction
@@ -235,6 +237,8 @@ def dislike_attraction(itinerary_id):
     itinerary = db.session.get(Itinerary, itinerary_id)
     if not itinerary:
         return jsonify({"error": "Itinerary not found"}), 404
+    if str(itinerary.user_id) != str(user_id):
+        return jsonify({"error": "Unauthorized"}), 403
 
     item_to_remove = ItineraryItem.query.filter_by(
         itinerary_id=itinerary_id,
@@ -357,6 +361,7 @@ def dislike_attraction(itinerary_id):
 
 
 @itinerary_bp.route("/<int:itinerary_id>/add-stop", methods=["POST"])
+# Adds an attraction to a selected day and rebuilds the optimised schedule.
 def add_stop(itinerary_id):
     """POST /api/itinerary/<id>/add-stop — add an attraction to a day and rebuild schedule."""
     from app.modules.distance import nearest_neighbour_route, assign_time_slots
@@ -448,6 +453,7 @@ def add_stop(itinerary_id):
 
 
 @itinerary_bp.route("/food-nearby", methods=["GET"])
+# Retrieves highly rated food attractions available in the selected city.
 def food_nearby():
     """GET /api/itinerary/food-nearby?city=Bangkok — food attractions in the same city."""
     city = request.args.get("city", "").strip()
@@ -465,6 +471,7 @@ def food_nearby():
 
 
 @itinerary_bp.route("/packing-list", methods=["POST"])
+# Generates an AI-based packing list according to the trip details and activities.
 def get_packing_list():
     """POST /api/itinerary/packing-list — AI packing list for a trip."""
     import os, json as _json
@@ -544,6 +551,7 @@ def get_packing_list():
 
 
 @itinerary_bp.route("/<int:itinerary_id>/rate", methods=["POST"])
+ # Saves the user's itinerary rating and updates behavioural preference weights.
 def rate_itinerary(itinerary_id):
     """POST /api/itinerary/<id>/rate — user rates a completed itinerary."""
     from app.models.itinerary_rating import ItineraryRating
@@ -562,6 +570,8 @@ def rate_itinerary(itinerary_id):
     itinerary = db.session.get(Itinerary, itinerary_id)
     if not itinerary:
         return jsonify({"error": "Itinerary not found."}), 404
+    if str(itinerary.user_id) != str(user_id):
+        return jsonify({"error": "Unauthorized"}), 403
 
     rating = ItineraryRating(
         itinerary_id=itinerary_id,

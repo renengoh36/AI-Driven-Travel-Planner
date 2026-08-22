@@ -1,22 +1,8 @@
 from datetime import datetime
 from .db import db
 
-
+# Stores user behaviour events used to refine recommendations.
 class UserBehaviour(db.Model):
-    """
-    Stores individual user interaction events used for behavioural profiling.
-
-    Each row is one observable action:
-      - search            : user searched for a destination
-      - attraction_add    : user added an attraction to their plan
-      - itinerary_generate: user generated a full itinerary
-      - rating            : user submitted a satisfaction rating
-
-    event_weight is pre-computed on write (see modules/behaviour.py) to
-    reflect how strongly each event implies interest in the stored category.
-    Negative weights (e.g. low-rated itineraries) reduce a category's score.
-    """
-
     __tablename__ = "user_behaviour"
 
     behaviour_id = db.Column(db.Integer, primary_key=True, autoincrement=True)

@@ -1,7 +1,7 @@
 from datetime import datetime
 from .db import db
 
-
+# Stores user preferences and persona information used for personalised recommendations.
 class UserProfile(db.Model):
     __tablename__ = "user_profiles"
 

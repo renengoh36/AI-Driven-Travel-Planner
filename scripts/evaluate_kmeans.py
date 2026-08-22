@@ -17,7 +17,7 @@ from app import create_app
 from app.models.user_profile import UserProfile
 from app.modules.profiling import encode_user, load_model, PERSONA_LABELS
 
-
+# Builds a normalised feature matrix from all stored user profiles.
 def build_matrix():
     profiles = UserProfile.query.all()
     vecs = [
@@ -26,7 +26,7 @@ def build_matrix():
     ]
     return normalize(np.vstack(vecs)), profiles
 
-
+ # Evaluates the deployed K-Means model and compares cluster counts from k=2 to k=10.
 def run():
     app = create_app()
     with app.app_context():

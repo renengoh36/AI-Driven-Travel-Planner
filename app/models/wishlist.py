@@ -1,7 +1,7 @@
 from datetime import datetime
 from .db import db
 
-
+# Stores attractions saved by users for future reference.
 class Wishlist(db.Model):
     __tablename__ = "wishlists"
 

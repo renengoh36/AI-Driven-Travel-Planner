@@ -9,7 +9,7 @@ _BASE_WEIGHT = {
     "rating":             1.5,
 }
 
-
+# Logs user interactions and assigns behaviour weights for dynamic preference learning.
 def log_event(user_id, event_type, db_session, category=None,
               destination=None, attraction_id=None, rating_score=None):
     from app.models.user_behaviour import UserBehaviour
@@ -28,7 +28,7 @@ def log_event(user_id, event_type, db_session, category=None,
     ))
     db_session.commit()
 
-
+# Calculates normalised preference weights from the user's recorded behaviour.
 def compute_behaviour_weights(user_id, db_session):
     from app.models.user_behaviour import UserBehaviour
 
@@ -48,7 +48,7 @@ def compute_behaviour_weights(user_id, db_session):
         return {}
     return {cat: round(v / total, 4) for cat, v in clamped.items()}
 
-
+# Updates the user's dynamic interests based on accumulated behaviour weights.
 def update_user_dynamic_interests(user_id, db_session):
     from app.models.user_profile import UserProfile
 
@@ -59,7 +59,7 @@ def update_user_dynamic_interests(user_id, db_session):
         db_session.commit()
     return weights
 
-
+ # Retrieves the user's stored dynamic interest weights from the profile.
 def get_behaviour_weights(user_id, db_session):
     from app.models.user_profile import UserProfile
 

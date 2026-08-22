@@ -1,7 +1,7 @@
 from .db import db
 import datetime as dt
 
-
+# Stores individual attractions, schedules, and visiting order within an itinerary.
 class ItineraryItem(db.Model):
     __tablename__ = "itinerary_items"
 

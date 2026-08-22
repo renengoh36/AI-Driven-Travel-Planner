@@ -9,6 +9,7 @@ auth_bp = Blueprint("auth", __name__)
 
 
 @auth_bp.route("/register", methods=["POST"])
+  # Registers a new user account and securely stores the hashed password.
 def register():
     data = request.get_json(silent=True) or {}
     full_name = data.get("full_name", "").strip()
@@ -28,6 +29,7 @@ def register():
 
 
 @auth_bp.route("/login", methods=["POST"])
+# Verifies user credentials and returns the user's profile information.
 def login():
     data     = request.get_json(silent=True) or {}
     email    = data.get("email", "").strip().lower()
@@ -51,6 +53,7 @@ def login():
 
 
 @auth_bp.route("/onboarding", methods=["POST"])
+ # Validates onboarding preferences, assigns a persona, and saves the user profile.
 def onboarding():
     data         = request.get_json(silent=True) or {}
     user_id      = data.get("user_id")
@@ -100,6 +103,7 @@ def onboarding():
 
 
 @auth_bp.route("/<int:user_id>/profile", methods=["GET"])
+ # Retrieves the user's stored profile information.
 def get_profile(user_id):
     user = User.query.get(user_id)
     if not user:
@@ -111,6 +115,7 @@ def get_profile(user_id):
 
 
 @auth_bp.route("/<int:user_id>/preferences", methods=["PATCH"])
+# Updates user preferences and recalculates the assigned traveller persona.
 def update_preferences(user_id):
     data = request.get_json(silent=True) or {}
     user = User.query.get(user_id)
