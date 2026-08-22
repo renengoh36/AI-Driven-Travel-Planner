@@ -1,17 +1,3 @@
-"""
-Chatbot route — POST /api/chat
-
-Accepts a JSON body:
-    { "user_id": int (optional), "message": str }
-
-Returns:
-    { "reply": str, "intent": str, "entities": dict, "updates_applied": bool }
-
-Uses Groq (Llama 3) for AI responses. The rule-based NLP module runs in the
-background to extract entities and update the user's profile (budget,
-interests, weather preference).
-"""
-
 from flask import Blueprint, request, jsonify, current_app
 
 from app.models.db import db
@@ -21,7 +7,7 @@ from app.modules.profiling import assign_persona
 
 chatbot_bp = Blueprint("chatbot", __name__)
 
-
+# Generates an AI travel response using the user's profile context.
 def _build_ai_reply(message: str, context: dict, profile) -> str | None:
     """Call Groq API (Llama 3) and return a travel-assistant reply."""
     from groq import Groq
@@ -72,7 +58,7 @@ def _build_ai_reply(message: str, context: dict, profile) -> str | None:
         current_app.logger.error(f"Groq API error: {type(e).__name__}: {e}")
         return None
 
-
+# Processes chatbot messages, updates preferences, and returns the AI response.
 @chatbot_bp.route("/chat", methods=["POST"])
 def chat():
     """POST /api/chat"""

@@ -1,7 +1,7 @@
 from datetime import datetime
 from .db import db
 
-
+# Stores user ratings and feedback for generated itineraries.
 class ItineraryRating(db.Model):
     __tablename__ = "itinerary_ratings"
 

@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}Wishlist — Pengo{% endblock %}
+
+{% block head %}
+<style>
+.s-wish { padding: 8rem 0 8rem; }  /* top must clear the fixed 6rem .app-topbar */
+.wish-header { margin-bottom: 3.6rem; }
+.wish-header h1 { font-size: 3.2rem; font-weight: 900; color: #0f172a; margin-bottom: .6rem; }
+.wish-header p  { font-size: 1.6rem; color: #64748b; }
+.wish-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(28rem, 1fr)); gap: 2.4rem; }
+
+.wish-card {
+    background: #fff; border-radius: 1.6rem;
+    border: 2px solid #e2e8f0; overflow: hidden;
+    transition: transform .2s, box-shadow .2s, border-color .2s;
+    position: relative;
+}
+.wish-card:hover { transform: translateY(-4px); box-shadow: 0 12px 36px rgba(0,0,0,.09); border-color: #fca5a5; }
+
+.wish-photo { height: 18rem; background: linear-gradient(135deg,#1e3a5f,#0f172a); background-size:cover; background-position:center; position: relative; }
+.wish-photo::after { content:''; position:absolute; inset:0; background:linear-gradient(to top,rgba(0,0,0,.5) 0%,transparent 50%); }
+.wish-cat  { position:absolute; bottom:1.2rem; left:1.4rem; background:rgba(37,99,235,.85); color:#fff; font-size:1.1rem; font-weight:700; padding:.3rem 1rem; border-radius:2rem; z-index:1; text-transform:capitalize; }
+
+.btn-remove {
+    position: absolute; top: 1rem; right: 1rem; z-index: 10;
+    width: 3rem; height: 3rem; border-radius: 50%;
+    background: rgba(255,255,255,.92); border: none; cursor: pointer;
+    font-size: 1.4rem; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15); color: #ef4444;
+    transition: transform .15s, background .15s;
+}
+.btn-remove:hover { transform: scale(1.15); background: #fff; }
+
+.wish-body { padding: 1.8rem 2rem 2rem; }
+.wish-name { font-size: 1.7rem; font-weight: 800; color: #1e293b; margin-bottom: .5rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.wish-loc  { font-size: 1.3rem; color: #64748b; margin-bottom: 1rem; display:flex; align-items:center; gap:.5rem; }
+.wish-stats { display:flex; gap:1rem; margin-bottom:1.6rem; flex-wrap:wrap; }
+.wish-tag { font-size:1.2rem; font-weight:600; padding:.3rem 1rem; border-radius:2rem; }
+.wish-tag.green { background:#f0fdf4; color:#15803d; }
+.wish-tag.blue  { background:#eff6ff; color:#1d4ed8; }
+.wish-tag.amber { background:#fffbeb; color:#92400e; }
+.wish-actions { display:flex; gap:1rem; }
+.btn-wish { flex:1; padding:1rem; border-radius:.7rem; font-size:1.4rem; font-weight:700; cursor:pointer; transition:opacity .2s; border:none; }
+.btn-wish.primary { background:var(--pengo-blue); color:#fff; }
+.btn-wish.primary:hover { opacity:.88; }
+
+.empty-state { text-align:center; padding:8rem 2rem; }
+.empty-state .ei { font-size:6rem; margin-bottom:1.6rem; }
+.empty-state h3  { font-size:2.2rem; font-weight:700; color:#475569; margin-bottom:.8rem; }
+.empty-state p   { font-size:1.6rem; color:#94a3b8; }
+.empty-state a   { color:var(--pengo-blue); font-weight:600; text-decoration:none; }
+.loading-state   { text-align:center; padding:6rem 2rem; color:#94a3b8; font-size:1.6rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="s-wish">
+    <div class="row">
+        <div class="wish-header">
+            <h1>♥ Wishlist</h1>
+            <p>Attractions you've saved — ready to add to your next itinerary.</p>
+        </div>
+        <div id="wish-loading" class="loading-state">Loading your wishlist…</div>
+        <div id="wish-grid" class="wish-grid" style="display:none;"></div>
+        <div id="wish-empty" class="empty-state" style="display:none;">
+            <div class="ei">💛</div>
+            <h3>Nothing saved yet</h3>
+            <p>Tap the ♡ heart on any attraction to save it here.</p>
+            <p style="margin-top:1.2rem;"><a href="/dashboard">Explore destinations →</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const userId = localStorage.getItem('user_id');
+if (!userId) window.location.href = '/login';
+
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+async function loadWishlist() {
+    try {
+        const res  = await fetch(`/api/wishlist?user_id=${userId}`);
+        const data = await res.json();
+        const list = data.wishlist || [];
+
+        document.getElementById('wish-loading').style.display = 'none';
+        if (!list.length) {
+            document.getElementById('wish-empty').style.display = 'block';
+            return;
+        }
+
+        const grid = document.getElementById('wish-grid');
+        grid.style.display = 'grid';
+
+        list.forEach(att => {
+            const photoSrc = att.photo_reference
+                ? `/api/photo?ref=${encodeURIComponent(att.photo_reference)}&w=600`
+                : (att.photo_url || '');
+            const stars  = att.rating ? '★'.repeat(Math.floor(att.rating)) + (att.rating%1>=.5?'½':'') : '';
+            const cost   = att.entry_cost == null ? 'Price N/A' : (att.entry_cost ? `RM ${att.entry_cost.toFixed(0)}` : 'Free');
+
+            const card = document.createElement('div');
+            card.className = 'wish-card';
+            card.dataset.id = att.attraction_id;
+            card.innerHTML = `
+                <button class="btn-remove" onclick="removeFromWishlist(${att.attraction_id}, this)" title="Remove from wishlist">♥</button>
+                <div class="wish-photo" ${photoSrc ? `style="background-image:url('${esc(photoSrc)}')"` : ''}>
+                    <div class="wish-cat">${esc(att.category || '')}</div>
+                </div>
+                <div class="wish-body">
+                    <div class="wish-name" title="${esc(att.name)}">${esc(att.name)}</div>
+                    <div class="wish-loc">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        ${esc(att.city||'')}${att.country ? ', '+esc(att.country) : ''}
+                    </div>
+                    <div class="wish-stats">
+                        ${stars ? `<span class="wish-tag amber">⭐ ${att.rating.toFixed(1)}</span>` : ''}
+                        <span class="wish-tag green">${cost}</span>
+                        <span class="wish-tag blue">${esc(att.category||'')}</span>
+                    </div>
+                    <div class="wish-actions">
+                        <button class="btn-wish primary" onclick="addToPlan(${att.attraction_id}, '${esc(att.city||att.country||'')}')">Add to Plan</button>
+                    </div>
+                </div>`;
+            grid.appendChild(card);
+        });
+    } catch(e) {
+        document.getElementById('wish-loading').textContent = 'Failed to load wishlist.';
+    }
+}
+
+async function removeFromWishlist(attractionId, btn) {
+    btn.disabled = true;
+    try {
+        await fetch(`/api/wishlist/${attractionId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: parseInt(userId) }),
+        });
+        const card = btn.closest('.wish-card');
+        card.style.transition = 'opacity .3s, transform .3s';
+        card.style.opacity = '0';
+        card.style.transform = 'scale(.95)';
+        setTimeout(() => {
+            card.remove();
+            if (!document.querySelectorAll('.wish-card').length) {
+                document.getElementById('wish-grid').style.display = 'none';
+                document.getElementById('wish-empty').style.display = 'block';
+            }
+        }, 300);
+    } catch(e) { btn.disabled = false; }
+}
+
+function addToPlan(attractionId, city) {
+    sessionStorage.setItem('prefill_destination', city);
+    window.location.href = '/recommendations';
+}
+
+loadWishlist();
+</script>
+{% endblock %}

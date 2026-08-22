@@ -1,7 +1,7 @@
 from datetime import datetime
 from .db import db
 
-
+# Stores user feedback linking an attraction to a generated itinerary.
 class AttractionFeedback(db.Model):
     __tablename__ = "attraction_feedback"
 

@@ -1,6 +1,6 @@
 from .db import db
 
-
+# Stores attraction information, including location, category, ratings, cost, popularity, and photos.
 class Attraction(db.Model):
     __tablename__ = "attractions"
 

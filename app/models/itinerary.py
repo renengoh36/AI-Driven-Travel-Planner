@@ -1,7 +1,7 @@
 from datetime import datetime
 from .db import db
 
-
+# Stores generated travel itineraries and their associated details.
 class Itinerary(db.Model):
     __tablename__ = "itineraries"
 

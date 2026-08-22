@@ -1,0 +1,25 @@
+user,destination,persona,interests,budget,precision@5,recall@5,f1@5,relevant_in_pool,pool_size
+U01,Istanbul,Budget Adventure Seeker,nature+relaxation+history,budget,0.0,,,0,144
+U02,Barcelona,Relaxation & Foodie,relaxation,budget,0.0,,,0,134
+U03,Incheon,Budget Adventure Seeker,adventure+nature+shopping,budget,1.0,0.0413,0.0794,121,197
+U04,Mexico City,Relaxation & Foodie,food,budget,0.0,,,0,231
+U05,Manila,Relaxation & Foodie,nature+adventure+food,luxury,1.0,0.0427,0.082,117,207
+U06,Toronto,Nature Explorer,adventure+shopping+food,mid-range,1.0,0.0562,0.1064,89,246
+U07,Jakarta,Urban Shopping Explorer,nature+food,luxury,0.8,0.0455,0.086,88,234
+U08,Guangzhou,Urban Shopping Explorer,history+food,budget,0.8,0.1212,0.2105,33,88
+U09,Tehran,Culture & History Explorer,nature,mid-range,0.4,0.0526,0.093,38,182
+U10,London,Culture & History Explorer,history+adventure,mid-range,0.8,0.0426,0.0808,94,241
+U11,Beijing,Culture & History Explorer,shopping+adventure+nature,mid-range,1.0,0.0893,0.1639,56,91
+U12,Lima,Luxury Culture Enthusiast,history+adventure+relaxation,luxury,1.0,0.0439,0.084,114,213
+U13,Shanghai,Culture & History Explorer,nature+relaxation+food,mid-range,0.8,0.1212,0.2105,33,97
+U14,Bogota,Nature Explorer,nature,mid-range,0.4,0.0541,0.0952,37,199
+U15,Yangon,Urban Shopping Explorer,relaxation+history,budget,0.0,,,0,176
+U16,Los Angeles,Relaxation & Foodie,food+history,luxury,0.8,0.0333,0.064,120,230
+U17,Dhaka,Relaxation & Foodie,nature+adventure+food,luxury,1.0,0.0495,0.0943,101,191
+U18,Kaohsiung,Nature Explorer,food,mid-range,0.4,0.0833,0.1379,24,224
+U19,Baghdad,Relaxation & Foodie,relaxation+adventure,budget,0.0,,,0,141
+U20,Sydney,Urban Shopping Explorer,nature+food,budget,0.0,,,0,221
+U21,Buenos Aires,Relaxation & Foodie,history+nature,budget,0.0,,,0,211
+U22,Mumbai,Nature Explorer,history+food+shopping,mid-range,1.0,0.0505,0.0962,99,213
+U23,Delhi,Budget Adventure Seeker,food+history,budget,0.0,,,0,214
+U24,Cairo,Relaxation & Foodie,adventure+relaxation+history,luxury,1.0,0.0532,0.101,94,189

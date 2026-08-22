@@ -1,33 +1,3 @@
-"""
-fetch_attractions.py
-
-Fetches real-world attraction data from the Google Places API for a given
-city and maps it into the ATTRACTIONS table schema used by the
-AI-Driven Personalised Travel Planner.
-
-----------------------------------------------------------------------
-DATA SOURCE NOTE (for your FYP report):
-
-ALL fields in ATTRACTIONS are sourced from REAL data:
-
-    name, latitude, longitude   — Google Places (authoritative)
-    city, country               — Google Geocoding API
-    category                    — derived from Google place types (allow-list below)
-    rating                      — Google Maps crowd-sourced star rating (real 1–5 ⭐)
-    popularity_score            — derived from user_ratings_total (real review count)
-    entry_cost                  — estimated from Google price_level (0–4 scale);
-                                  still an estimate (Google doesn't expose ticket prices)
-                                  but grounded in real relative-cost data, not invented.
-
-Cite in methodology as:
-  "Attraction data including real user ratings and relative cost indicators
-  were retrieved from the Google Places API (Nearby Search + Geocoding).
-  Entry cost was estimated from Google's price_level field (0–4 scale)
-  mapped to USD tiers, as exact ticket prices are not publicly available
-  through any free API."
-----------------------------------------------------------------------
-"""
-
 import os
 import time
 import requests
@@ -35,9 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# ----------------------------------------------------------------------
-# CONFIG — loaded from .env via python-dotenv or set as env vars
-# ----------------------------------------------------------------------
+
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", "")
 
 GEOCODE_URL = "https://maps.googleapis.com/maps/api/geocode/json"
@@ -55,10 +23,16 @@ SEARCH_TYPES = [
     "spa",
     "art_gallery",
     "zoo",
-    "aquarium"
+    "aquarium",
+    "night_club",
+    "movie_theater",
+    "casino",
+    "bowling_alley",
+    "campground",
+    "hindu_temple",
+    "market",
 ]
 
-# Google place types → your report's category labels.
 # Priority order: first match in a place's types list wins.
 TYPE_TO_CATEGORY = [
     ("museum",           "history"),
@@ -66,8 +40,11 @@ TYPE_TO_CATEGORY = [
     ("church",           "history"),
     ("mosque",           "history"),
     ("hindu_temple",     "history"),
+    ("synagogue",        "history"),
     ("place_of_worship", "history"),
     ("cemetery",         "history"),
+    ("city_hall",        "history"),
+    ("courthouse",       "history"),
     ("zoo",              "nature"),
     ("aquarium",         "nature"),
     ("park",             "nature"),
@@ -84,6 +61,9 @@ TYPE_TO_CATEGORY = [
     ("amusement_park",   "adventure"),
     ("stadium",          "adventure"),
     ("bowling_alley",    "adventure"),
+    ("night_club",       "adventure"),
+    ("movie_theater",    "adventure"),
+    ("casino",           "adventure"),
     ("spa",              "relaxation"),
     ("beauty_salon",     "relaxation"),
     ("tourist_attraction","history"),   # fallback for generic landmarks
@@ -107,10 +87,8 @@ EXCLUDED_TYPES = {
 }
 
 
-# ----------------------------------------------------------------------
-# HELPERS
-# ----------------------------------------------------------------------
 
+# Converts a city name into coordinates and canonical location information.
 def geocode_city(city_name: str) -> dict:
     """City name → lat, lon, city (canonical), country via Google Geocoding."""
     resp = requests.get(
@@ -140,8 +118,8 @@ def geocode_city(city_name: str) -> dict:
     return {"city": city, "country": country, "lat": loc["lat"], "lon": loc["lng"]}
 
 
+ # Retrieves nearby places of a specified type from the Google Places API.
 def nearby_search(lat: float, lon: float, place_type: str, radius_m: int = 15000) -> list:
-    """One page (up to 20 results) of Google Places Nearby Search for a single type."""
     params = {
         "location": f"{lat},{lon}",
         "radius": radius_m,
@@ -159,9 +137,8 @@ def nearby_search(lat: float, lon: float, place_type: str, radius_m: int = 15000
 
     return data.get("results", [])
 
-
+# Maps Google place types to the system's predefined attraction categories.
 def map_google_types_to_category(types: list) -> str | None:
-    """Returns our category label for the first matching Google type, or None."""
     type_set = set(types)
     if type_set & EXCLUDED_TYPES:
         return None
@@ -171,6 +148,7 @@ def map_google_types_to_category(types: list) -> str | None:
     return None
 
 
+ # Converts the Google review count into a popularity score from 1 to 4.
 def popularity_from_ratings_count(count: int) -> int:
     """Maps raw Google review count to a 1–4 popularity_score."""
     if count >= 2000:
@@ -181,18 +159,17 @@ def popularity_from_ratings_count(count: int) -> int:
         return 2
     return 1
 
-
-def cost_from_price_level(price_level) -> float:
-    """Maps Google price_level (0–4) to an estimated entry cost USD."""
+# Converts Google's price level into an estimated attraction entry cost.
+def cost_from_price_level(price_level):
     if price_level is None:
-        return 5.0  # unknown → mid assumption
+        return None
     return PRICE_LEVEL_TO_COST.get(int(price_level), 5.0)
 
 
 # ----------------------------------------------------------------------
 # MAIN PIPELINE
 # ----------------------------------------------------------------------
-
+# Fetches, categorises, and prepares attraction data for database storage.
 def build_attraction_records(
     city_name: str,
     radius_m: int = 25000,
@@ -200,14 +177,6 @@ def build_attraction_records(
     lon: float | None = None,
     country: str | None = None,
 ) -> list:
-    """
-    Full pipeline: city name → list of dicts matching the ATTRACTIONS schema,
-    ready to insert into MySQL.
-    Searches multiple place types and deduplicates by place_id.
-
-    If lat/lon are provided, the Geocoding API call is skipped entirely —
-    useful when coordinates are already known and Geocoding quota is limited.
-    """
     if lat is None or lon is None:
         geo = geocode_city(city_name)
         lat, lon, country = geo["lat"], geo["lon"], country or geo["country"]

@@ -7,11 +7,20 @@ body.app-page { padding-top: 6rem; }
 
 /* ── PAGE HEADER ── */
 .exp-header {
+    position: relative;
     background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+    background-size: cover; background-position: center;
     padding: 4rem 0 5.6rem;
     color: #fff;
+    transition: background-image .4s ease;
+    overflow: hidden;
 }
-.exp-header-inner { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 2rem; }
+/* Dark wash so white header text stays readable once a real photo loads in */
+.exp-header::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(160deg, rgba(15,23,42,.82) 0%, rgba(30,58,95,.68) 100%);
+}
+.exp-header-inner { position: relative; z-index: 1; display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 2rem; }
 .exp-header h1 { font-size: 3.2rem; font-weight: 900; margin-bottom: .4rem; }
 .exp-header .dest-sub { font-size: 1.6rem; color: #94a3b8; }
 .exp-chips { display: flex; gap: .8rem; flex-wrap: wrap; margin-top: 1.2rem; }
@@ -113,6 +122,9 @@ body.app-page { padding-top: 6rem; }
     box-shadow: 0 2px 8px rgba(37,99,235,.4);
 }
 .att-card.selected .check-badge { display: flex; }
+.wish-btn { position:absolute; top:1rem; left:1rem; z-index:10; width:2.8rem; height:2.8rem; border-radius:50%; background:rgba(255,255,255,.9); border:none; font-size:1.5rem; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,.15); transition:all .15s; line-height:1; }
+.wish-btn:hover { transform:scale(1.15); background:#fff; }
+.wish-btn.wished { color:#ef4444; background:#fff; }
 .att-photo-wrap {
     position: relative; overflow: hidden;
     height: 20rem; flex-shrink: 0; background: #e2e8f0;
@@ -220,9 +232,9 @@ body.app-page { padding-top: 6rem; }
                 <div class="filter-pills" id="price-pills">
                     <button class="f-pill active" data-price="">Any</button>
                     <button class="f-pill" data-price="free">Free</button>
-                    <button class="f-pill" data-price="budget">Under $15</button>
-                    <button class="f-pill" data-price="mid">$15–$30</button>
-                    <button class="f-pill" data-price="premium">$30+</button>
+                    <button class="f-pill" data-price="budget">Under RM15</button>
+                    <button class="f-pill" data-price="mid">RM15–RM30</button>
+                    <button class="f-pill" data-price="premium">RM30+</button>
                 </div>
             </div>
             <div class="filter-sep"></div>
@@ -230,6 +242,7 @@ body.app-page { padding-top: 6rem; }
                 <span class="filter-label">Min Rating</span>
                 <div class="filter-pills" id="rating-pills">
                     <button class="f-pill active" data-rating="0">Any</button>
+                    <button class="f-pill" data-rating="3">3+ ★</button>
                     <button class="f-pill" data-rating="4">4+ ★</button>
                     <button class="f-pill" data-rating="4.5">4.5+ ★</button>
                 </div>
@@ -291,6 +304,40 @@ document.getElementById('topbar-search-wrap').style.display = 'flex';
 const userId = localStorage.getItem('user_id');
 if (!userId) window.location.href = '/login';
 
+// ── WISHLIST STATE ──
+const wishedIds = new Set();
+(async () => {
+    try {
+        const r = await fetch(`/api/wishlist/ids?user_id=${userId}`);
+        const d = await r.json();
+        (d.ids || []).forEach(id => wishedIds.add(id));
+    } catch(e) {}
+})();
+
+async function toggleWish(attractionId, btn) {
+    const isWished = wishedIds.has(attractionId);
+    if (isWished) {
+        await fetch(`/api/wishlist/${attractionId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: parseInt(userId) }),
+        });
+        wishedIds.delete(attractionId);
+    } else {
+        await fetch('/api/wishlist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: parseInt(userId), attraction_id: attractionId }),
+        });
+        wishedIds.add(attractionId);
+    }
+    const now = wishedIds.has(attractionId);
+    document.querySelectorAll(`.att-card[data-id="${attractionId}"] .wish-btn`).forEach(b => {
+        b.textContent = now ? '♥' : '♡';
+        b.classList.toggle('wished', now);
+    });
+}
+
 let allRecs = [];
 let filtered = [];
 let selectedIds = new Set();
@@ -308,40 +355,44 @@ const chipsEl = document.getElementById('exp-chips');
     const c = document.createElement('div'); c.className = 'exp-chip'; c.textContent = t; chipsEl.appendChild(c);
 });
 
-// Always fetch fresh data — sessionStorage only used as fallback while loading
-if (!destination) { window.location.href = '/dashboard'; }
+// Load data — deduplicate by attraction_id in case same place was fetched twice
+try {
+    const raw = JSON.parse(sessionStorage.getItem('recommendations') || '[]');
+    const seen = new Set();
+    allRecs = raw.filter(r => { if (seen.has(r.attraction_id)) return false; seen.add(r.attraction_id); return true; });
+} catch(e){}
+if (!allRecs.length) {
+    document.getElementById('att-grid').innerHTML = `<div class="empty-state">
+        <div class="big-icon">😕</div><h3>No results found</h3>
+        <p>We couldn't find attractions for this destination.</p>
+        <a href="/dashboard">← Try another city</a></div>`;
+} else {
+    buildTrending();
+    applyFilters();
+    setHeaderPhoto();
+}
 
-document.getElementById('att-grid').innerHTML = `<div class="empty-state"><div class="big-icon">⏳</div><h3>Loading...</h3><p>Fetching attractions for ${destination}…</p></div>`;
-
-fetch('/api/recommendations', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ user_id: parseInt(userId), destination })
-})
-.then(res => res.json().then(data => ({ ok: res.ok, data })))
-.then(({ ok, data }) => {
-    if (ok && data.recommendations && data.recommendations.length) {
-        const seen = new Set();
-        allRecs = data.recommendations.filter(r => {
-            if (seen.has(r.attraction_id)) return false;
-            seen.add(r.attraction_id);
-            return true;
-        });
-        sessionStorage.setItem('recommendations', JSON.stringify(allRecs));
-        buildTrending();
-        applyFilters();
-    } else {
-        document.getElementById('att-grid').innerHTML =
-            `<div class="empty-state"><div class="big-icon">😕</div><h3>No results found</h3>`+
-            `<p>We couldn't find attractions for "${destination}".</p>`+
-            `<a href="/dashboard">← Try another city</a></div>`;
-    }
-})
-.catch(() => {
-    document.getElementById('att-grid').innerHTML =
-        `<div class="empty-state"><div class="big-icon">⚠️</div><h3>Connection error</h3>`+
-        `<p>Could not reach the server.</p><a href="/dashboard">← Go back</a></div>`;
-});
+// Background photo for the "Attractions in {destination}" header — preload-test
+// candidates in rating/popularity order instead of trusting the first one, since
+// a broken photo_reference would otherwise leave the header with nothing (same
+// issue fixed on the itinerary page).
+function setHeaderPhoto() {
+    const header = document.querySelector('.exp-header');
+    if (!header) return;
+    const candidates = [...allRecs]
+        .sort((a, b) => ((b.rating||0)*(b.popularity_score||1)) - ((a.rating||0)*(a.popularity_score||1)))
+        .filter(r => r.photo_reference || r.photo_url)
+        .map(r => r.photo_reference
+            ? `/api/photo?ref=${encodeURIComponent(r.photo_reference)}&w=1600`
+            : r.photo_url);
+    (function tryNext(idx) {
+        if (idx >= candidates.length) return;   // none loaded — keep the default gradient
+        const probe = new Image();
+        probe.onload  = () => { header.style.backgroundImage = `url('${candidates[idx]}')`; };
+        probe.onerror = () => tryNext(idx + 1);
+        probe.src = candidates[idx];
+    })(0);
+}
 
 /* ─── TRENDING ─── */
 function buildTrending() {
@@ -374,7 +425,7 @@ function buildTrending() {
                 <h4 title="${r.name}">${r.name}</h4>
                 <div class="tc-meta">
                     <span>${r.rating ? '⭐ '+r.rating.toFixed(1) : 'No rating'}</span>
-                    <span>${r.entry_cost ? '$'+r.entry_cost.toFixed(0) : 'Free'}</span>
+                    <span>${r.entry_cost == null ? 'Price N/A' : (r.entry_cost ? 'RM'+r.entry_cost.toFixed(0) : 'Free')}</span>
                 </div>
             </div>`;
         card.addEventListener('click', () => toggleById(r.attraction_id, card));
@@ -399,8 +450,8 @@ function priceMatch(cost, filter) {
     cost = cost || 0;
     if (filter==='free') return cost === 0;
     if (filter==='budget') return cost > 0 && cost < 15;
-    if (filter==='mid') return cost >= 15 && cost <= 30;
-    if (filter==='premium') return cost > 30;
+    if (filter==='mid') return cost >= 15 && cost < 30;
+    if (filter==='premium') return cost >= 30;   // was `> 30`, which silently excluded every RM30 item
     return true;
 }
 
@@ -433,25 +484,8 @@ function catColor(cat) {
 function _onPhotoLoad(img) { img.closest('.att-card').style.opacity = '1'; }
 function _onPhotoErr(img, hasManualUrl) {
     const card = img.closest('.att-card');
-    card.style.opacity = '1';
-    const wrap = img.closest('.att-photo-wrap');
-    if (wrap) {
-        const CAT_GRADS = {
-            nature:['#064e3b','#065f46'], food:['#78350f','#92400e'],
-            history:['#1e3a5f','#1e40af'], shopping:['#4a044e','#701a75'],
-            adventure:['#450a0a','#7f1d1d'], relaxation:['#1e1b4b','#3730a3'],
-        };
-        const name = card.querySelector('.att-name')?.textContent || '';
-        const cat  = card.dataset.category || '';
-        const city = card.querySelector('.att-city')?.textContent || '';
-        const g = CAT_GRADS[cat] || ['#1e293b','#334155'];
-        wrap.innerHTML = `<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;
-            justify-content:center;background:linear-gradient(145deg,${g[0]},${g[1]});padding:2rem;text-align:center;">
-            <div style="font-size:1rem;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.55);margin-bottom:.8rem;">${cat}</div>
-            <div style="font-size:1.5rem;font-weight:900;color:#fff;line-height:1.25;">${name}</div>
-            <div style="font-size:1.1rem;color:rgba(255,255,255,.55);margin-top:.5rem;">${city}</div>
-        </div>`;
-    }
+    if (hasManualUrl) card.style.opacity = '1';
+    else card.remove();
 }
 
 function starsHTML(rating) {
@@ -462,36 +496,28 @@ function starsHTML(rating) {
 
 function buildCard(r) {
     const sel = selectedIds.has(r.attraction_id);
-    const scoreW = Math.round((r.recommendation_score||0)*100);
+    const scoreW = Math.min(98, Math.round((r.recommendation_score||0)*125));
     const photoSrc = r.photo_reference
         ? `/api/photo?ref=${encodeURIComponent(r.photo_reference)}&w=600`
         : (r.photo_url || null);
     const hasManualUrl = !r.photo_reference && !!r.photo_url;
-    const CAT_GRADS = {
-        nature:     ['#064e3b','#065f46'], food:       ['#78350f','#92400e'],
-        history:    ['#1e3a5f','#1e40af'], shopping:   ['#4a044e','#701a75'],
-        adventure:  ['#450a0a','#7f1d1d'], relaxation: ['#1e1b4b','#3730a3'],
-    };
-    const g = CAT_GRADS[r.category] || ['#1e293b','#334155'];
     const photoHtml = photoSrc
         ? `<img src="${photoSrc}" alt="${esc(r.name)}"
                onload="_onPhotoLoad(this)"
                onerror="_onPhotoErr(this,${hasManualUrl})">`
-        : `<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;
-                       justify-content:center;background:linear-gradient(145deg,${g[0]},${g[1]});
-                       padding:2rem;text-align:center;">
-               <div style="font-size:1.1rem;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.55);margin-bottom:.8rem;">${esc(cap(r.category))}</div>
-               <div style="font-size:1.7rem;font-weight:900;color:#fff;line-height:1.25;">${esc(r.name)}</div>
-               <div style="font-size:1.2rem;color:rgba(255,255,255,.55);margin-top:.5rem;">${esc(r.city||'')}</div>
-           </div>`;
+        : ``;
 
     const card = document.createElement('div');
     card.className = 'att-card' + (sel ? ' selected' : '');
     if (photoSrc && !sel) card.style.opacity = '0';
     card.dataset.id = r.attraction_id;
-    card.dataset.category = r.category || '';
     card.innerHTML = `
         <div class="check-badge">✓</div>
+        <button class="wish-btn${wishedIds.has(r.attraction_id) ? ' wished' : ''}"
+                onclick="event.stopPropagation();toggleWish(${r.attraction_id},this)"
+                title="Save to Wishlist">
+            ${wishedIds.has(r.attraction_id) ? '♥' : '♡'}
+        </button>
         <div class="att-photo-wrap">
             ${photoHtml}
             <div class="photo-overlay">
@@ -508,6 +534,7 @@ function buildCard(r) {
             <div class="att-meta">${starsHTML(r.rating)}</div>
             <div class="att-tags">
                 <span class="att-tag att-tag-free">${esc(cap(r.category))}</span>
+                <span class="att-tag" style="background:#f0fdf4;color:#15803d;font-weight:700;">${r.entry_cost == null ? 'Price N/A' : (r.entry_cost ? 'RM ' + r.entry_cost.toFixed(0) : 'Free')}</span>
             </div>
             <button class="att-add-btn" onclick="event.stopPropagation();toggleById(${r.attraction_id},this.closest('.att-card'))">
                 ${sel ? 'Added to Plan' : 'Add to Plan'}
@@ -517,10 +544,24 @@ function buildCard(r) {
     return card;
 }
 
+function clearAllFilters() {
+    activeCat = ''; activePrice = ''; activeRating = 0;
+    document.querySelectorAll('#cat-pills .f-pill').forEach(b => b.classList.toggle('active', b.dataset.cat===''));
+    document.querySelectorAll('#price-pills .f-pill').forEach(b => b.classList.toggle('active', b.dataset.price===''));
+    document.querySelectorAll('#rating-pills .f-pill').forEach(b => b.classList.toggle('active', b.dataset.rating==='0'));
+    applyFilters();
+}
+
 function renderGrid() {
     const grid = document.getElementById('att-grid');
     if (!filtered.length) {
-        grid.innerHTML = `<div class="empty-state"><div class="big-icon">🔎</div><h3>No matches</h3><p>Try removing some filters.</p></div>`;
+        // Most attractions share very few distinct price/rating values (a real
+        // limitation of Google's free Places data, not a bug), so stacking
+        // Category + Price + Rating filters together can easily intersect to
+        // zero — a one-click way back out matters more here than elsewhere.
+        grid.innerHTML = `<div class="empty-state"><div class="big-icon">🔎</div><h3>No matches</h3>
+            <p>These filters together match nothing here. Try clearing one.</p>
+            <a href="#" onclick="clearAllFilters();return false;">Clear all filters</a></div>`;
         return;
     }
     grid.innerHTML = '';

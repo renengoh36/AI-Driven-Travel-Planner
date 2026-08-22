@@ -41,11 +41,6 @@
 }
 .persona-dot { width:.65rem; height:.65rem; border-radius:50%; background:#60a5fa; animation:pdot 2s infinite; }
 @keyframes pdot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
-.hero-stats { display:flex; margin-top:3.6rem; }
-.hero-stat { padding:0 2.8rem 0 0; display:flex; flex-direction:column; gap:.3rem; border-right:1px solid rgba(255,255,255,.12); margin-right:2.8rem; }
-.hero-stat:last-child { border-right:none; margin-right:0; }
-.hero-stat-n { font-size:2.8rem; font-weight:900; color:#fff; line-height:1; }
-.hero-stat-l { font-size:1.15rem; font-weight:600; color:rgba(255,255,255,.45); text-transform:uppercase; letter-spacing:.08em; }
 
 /* ── SEARCH CARD ── */
 .search-card { background:#fff; border-radius:1.6rem; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,.14),0 4px 16px rgba(0,0,0,.06); margin-top:-5.2rem; position:relative; z-index:10; }
@@ -105,6 +100,9 @@
 .att-card.selected { border-color:var(--b600); box-shadow:0 0 0 3px rgba(37,99,235,.15),0 8px 32px rgba(37,99,235,.12); }
 .check-badge { position:absolute; top:1rem; right:1rem; z-index:10; width:3rem; height:3rem; border-radius:50%; background:var(--b600); color:#fff; font-size:1.4rem; font-weight:700; display:none; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(37,99,235,.45); }
 .att-card.selected .check-badge { display:flex; }
+.wish-btn { position:absolute; top:1rem; left:1rem; z-index:10; width:3rem; height:3rem; border-radius:50%; background:rgba(255,255,255,.9); border:none; font-size:1.6rem; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,.15); transition:all .15s; line-height:1; }
+.wish-btn:hover { transform:scale(1.15); background:#fff; }
+.wish-btn.wished { color:#ef4444; background:#fff; }
 
 /* ── PHOTO ── */
 .att-photo-wrap { position:relative; height:21rem; overflow:hidden; flex-shrink:0; background:var(--s200); }
@@ -188,11 +186,6 @@
         <div id="persona-chip" class="persona-chip" style="display:none;">
             <span class="persona-dot"></span><span id="persona-text"></span>
         </div>
-        <div class="hero-stats" id="hero-stats" style="display:none;">
-            <div class="hero-stat"><span class="hero-stat-n" id="stat-total">—</span><span class="hero-stat-l">Attractions</span></div>
-            <div class="hero-stat"><span class="hero-stat-n" id="stat-cities">—</span><span class="hero-stat-l">Cities</span></div>
-            <div class="hero-stat"><span class="hero-stat-n">AI</span><span class="hero-stat-l">Personalised</span></div>
-        </div>
     </div>
 </div>
 
@@ -208,16 +201,46 @@
             <div class="search-row">
                 <div>
                     <label class="sf-label">Country</label>
-                    <select id="country" class="sf-select" onchange="onCountryChange(this.value)">
-                        <option value="">Any Country</option>
-                        <option>Australia</option><option>France</option><option>Germany</option>
-                        <option>Greece</option><option>India</option><option>Indonesia</option>
-                        <option>Italy</option><option>Japan</option><option>Malaysia</option>
-                        <option>New Zealand</option><option>Singapore</option><option>South Korea</option>
-                        <option>Spain</option><option>Taiwan</option><option>Thailand</option>
-                        <option>Turkey</option><option>UAE</option><option>United Kingdom</option>
-                        <option>USA</option><option>Vietnam</option>
-                    </select>
+                    <!-- Free-text with suggestions — types ANY country, not just the list.
+                         Most countries have no cities pre-loaded yet; picking/typing one
+                         falls back to "type a city above" which live-fetches from Google on
+                         demand (see onCountryChange below). Only the ~30 countries we've
+                         already seeded show instant city pills. -->
+                    <input type="text" id="country" class="sf-input" list="countryList"
+                           placeholder="Any Country — type to search"
+                           onchange="onCountryChange(this.value.trim())">
+                    <datalist id="countryList">
+                        <option>Afghanistan</option><option>Albania</option><option>Algeria</option><option>Andorra</option><option>Angola</option>
+                        <option>Argentina</option><option>Armenia</option><option>Australia</option><option>Austria</option><option>Azerbaijan</option>
+                        <option>Bahamas</option><option>Bahrain</option><option>Bangladesh</option><option>Barbados</option><option>Belarus</option>
+                        <option>Belgium</option><option>Belize</option><option>Benin</option><option>Bhutan</option><option>Bolivia</option>
+                        <option>Bosnia and Herzegovina</option><option>Botswana</option><option>Brazil</option><option>Brunei</option><option>Bulgaria</option>
+                        <option>Burkina Faso</option><option>Burundi</option><option>Cambodia</option><option>Cameroon</option><option>Canada</option>
+                        <option>Chad</option><option>Chile</option><option>China</option><option>Colombia</option><option>Costa Rica</option>
+                        <option>Croatia</option><option>Cuba</option><option>Cyprus</option><option>Czech Republic</option><option>Denmark</option>
+                        <option>Dominican Republic</option><option>Ecuador</option><option>Egypt</option><option>El Salvador</option><option>Estonia</option>
+                        <option>Ethiopia</option><option>Fiji</option><option>Finland</option><option>France</option><option>Georgia</option>
+                        <option>Germany</option><option>Ghana</option><option>Greece</option><option>Guatemala</option><option>Honduras</option>
+                        <option>Hong Kong</option><option>Hungary</option><option>Iceland</option><option>India</option><option>Indonesia</option>
+                        <option>Iran</option><option>Iraq</option><option>Ireland</option><option>Israel</option><option>Italy</option>
+                        <option>Jamaica</option><option>Japan</option><option>Jordan</option><option>Kazakhstan</option><option>Kenya</option>
+                        <option>Kuwait</option><option>Laos</option><option>Latvia</option><option>Lebanon</option><option>Libya</option>
+                        <option>Liechtenstein</option><option>Lithuania</option><option>Luxembourg</option><option>Madagascar</option><option>Malaysia</option>
+                        <option>Maldives</option><option>Malta</option><option>Mauritius</option><option>Mexico</option><option>Moldova</option>
+                        <option>Monaco</option><option>Mongolia</option><option>Montenegro</option><option>Morocco</option><option>Mozambique</option>
+                        <option>Myanmar</option><option>Namibia</option><option>Nepal</option><option>Netherlands</option><option>New Zealand</option>
+                        <option>Nicaragua</option><option>Nigeria</option><option>North Macedonia</option><option>Norway</option><option>Oman</option>
+                        <option>Pakistan</option><option>Panama</option><option>Papua New Guinea</option><option>Paraguay</option><option>Peru</option>
+                        <option>Philippines</option><option>Poland</option><option>Portugal</option><option>Qatar</option><option>Romania</option>
+                        <option>Russia</option><option>Rwanda</option><option>Saudi Arabia</option><option>Senegal</option><option>Serbia</option>
+                        <option>Seychelles</option><option>Singapore</option><option>Slovakia</option><option>Slovenia</option><option>South Africa</option>
+                        <option>South Korea</option><option>Spain</option><option>Sri Lanka</option><option>Sudan</option><option>Sweden</option>
+                        <option>Switzerland</option><option>Taiwan</option><option>Tanzania</option><option>Thailand</option><option>Tunisia</option>
+                        <option>Turkey</option><option>Uganda</option><option>Ukraine</option>
+                        <option value="United Arab Emirates">UAE</option><option>United Kingdom</option>
+                        <option value="United States">USA</option><option>Uruguay</option><option>Uzbekistan</option>
+                        <option>Venezuela</option><option>Vietnam</option><option>Yemen</option><option>Zambia</option><option>Zimbabwe</option>
+                    </datalist>
                 </div>
                 <div>
                     <label class="sf-label">City / Destination</label>
@@ -266,9 +289,26 @@
             <div class="f-pills" id="price-pills">
                 <button class="f-pill active" data-price="" onclick="setFilter('price','',this)">Any</button>
                 <button class="f-pill" data-price="free" onclick="setFilter('price','free',this)">Free</button>
-                <button class="f-pill" data-price="low" onclick="setFilter('price','low',this)">Under $15</button>
-                <button class="f-pill" data-price="mid" onclick="setFilter('price','mid',this)">$15 – $30</button>
-                <button class="f-pill" data-price="high" onclick="setFilter('price','high',this)">$30+</button>
+                <button class="f-pill" data-price="low" onclick="setFilter('price','low',this)">Under RM15</button>
+                <button class="f-pill" data-price="mid" onclick="setFilter('price','mid',this)">RM15 – RM30</button>
+                <button class="f-pill" data-price="high" onclick="setFilter('price','high',this)">RM30+</button>
+            </div>
+            <div class="f-sep"></div>
+            <span class="f-label">Rating</span>
+            <div class="f-pills" id="rating-pills">
+                <button class="f-pill active" data-rating="0" onclick="setFilter('rating','0',this)">Any</button>
+                <button class="f-pill" data-rating="3" onclick="setFilter('rating','3',this)">3★+</button>
+                <button class="f-pill" data-rating="4" onclick="setFilter('rating','4',this)">4★+</button>
+                <button class="f-pill" data-rating="4.5" onclick="setFilter('rating','4.5',this)">4.5★+</button>
+            </div>
+            <div class="f-sep"></div>
+            <span class="f-label">Sort</span>
+            <div class="f-pills" id="sort-pills">
+                <button class="f-pill active" data-sort="score" onclick="setSort('score',this)">Best Match</button>
+                <button class="f-pill" data-sort="rating" onclick="setSort('rating',this)">Top Rated</button>
+                <button class="f-pill" data-sort="price_asc" onclick="setSort('price_asc',this)">Price ↑</button>
+                <button class="f-pill" data-sort="price_desc" onclick="setSort('price_desc',this)">Price ↓</button>
+                <button class="f-pill" data-sort="pop" onclick="setSort('pop',this)">Popular</button>
             </div>
         </div>
     </div>
@@ -384,6 +424,40 @@
 const userId = localStorage.getItem('user_id');
 if (!userId) window.location.href = '/login';
 
+// ── WISHLIST STATE ──
+const wishedIds = new Set();
+(async () => {
+    try {
+        const r = await fetch(`/api/wishlist/ids?user_id=${userId}`);
+        const d = await r.json();
+        (d.ids || []).forEach(id => wishedIds.add(id));
+    } catch(e) {}
+})();
+
+async function toggleWish(attractionId, btn) {
+    const isWished = wishedIds.has(attractionId);
+    if (isWished) {
+        await fetch(`/api/wishlist/${attractionId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: parseInt(userId) }),
+        });
+        wishedIds.delete(attractionId);
+    } else {
+        await fetch('/api/wishlist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: parseInt(userId), attraction_id: attractionId }),
+        });
+        wishedIds.add(attractionId);
+    }
+    const now = wishedIds.has(attractionId);
+    document.querySelectorAll(`.att-card[data-id="${attractionId}"] .wish-btn`).forEach(b => {
+        b.textContent = now ? '♥' : '♡';
+        b.classList.toggle('wished', now);
+    });
+}
+
 // ── HERO ──
 const userName = localStorage.getItem('user_name') || 'Traveller';
 const persona  = localStorage.getItem('persona') || '';
@@ -414,15 +488,31 @@ const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replac
 
 // ── STATE ──
 let allRecs = [], filtered = [], selectedIds = new Set(), _personaRecs = [];
-let activeCat = '', activePrice = '';
+let activeCat = '', activePrice = '', activeRating = 0, activeSort = 'score';
 let availableCities = [], selectedCities = new Set();
 
 // ── SESSION CACHE (5-min TTL stops repeated slow ML calls) ──
-const CACHE_KEY = 'persona_recs_v3';
-const CACHE_TS  = 'persona_recs_ts_v3';
-const CACHE_TTL = 5 * 60 * 1000;
+// Keyed by userId — previously it wasn't, so switching accounts in the same
+// browser session/tab (or two tabs open at once, since sessionStorage in this
+// case is still shared per-tab-group) could silently serve one user's cached
+// recommendations to a different user whenever the persona-label bust check
+// didn't catch it (e.g. bfcache restoring the page without re-running JS).
+// v4 — bumped so browsers holding a v3 cache (recommendations generated
+// before the budget/interest-decoupling fix in recommendation.py) fetch a
+// fresh, correctly-diversified set instead of showing stale stats/results.
+const CACHE_KEY      = `persona_recs_v4_${userId}`;
+const CACHE_TS       = `persona_recs_ts_v4_${userId}`;
+const CACHE_PERSONA  = `persona_recs_persona_v4_${userId}`;
+const CACHE_TTL      = 5 * 60 * 1000;
 
 async function loadPersonaRecs() {
+    // Bust cache if persona label changed (e.g. after preferences update)
+    const cachedPersona = sessionStorage.getItem(CACHE_PERSONA);
+    if (cachedPersona && persona && cachedPersona !== persona) {
+        sessionStorage.removeItem(CACHE_KEY);
+        sessionStorage.removeItem(CACHE_TS);
+        sessionStorage.removeItem(CACHE_PERSONA);
+    }
     // Use cache on return visits — instant render
     const cached = sessionStorage.getItem(CACHE_KEY);
     const cacheTs = parseInt(sessionStorage.getItem(CACHE_TS) || '0');
@@ -445,6 +535,7 @@ async function loadPersonaRecs() {
             _personaRecs = allRecs.slice();
             sessionStorage.setItem(CACHE_KEY, JSON.stringify(allRecs));
             sessionStorage.setItem(CACHE_TS, Date.now().toString());
+            if (persona) sessionStorage.setItem(CACHE_PERSONA, persona);
             updateHeroStats(); applyFilters();
         } else {
             showEmpty('Search a destination above to discover personalised recommendations.');
@@ -459,10 +550,6 @@ async function loadPersonaRecs() {
 loadPersonaRecs();
 
 function updateHeroStats() {
-    const cities = [...new Set(allRecs.map(r=>r.city).filter(Boolean))];
-    document.getElementById('stat-total').textContent = allRecs.length;
-    document.getElementById('stat-cities').textContent = cities.length;
-    document.getElementById('hero-stats').style.display = 'flex';
     document.getElementById('result-count-wrap').style.display = 'inline-block';
 }
 
@@ -542,8 +629,14 @@ async function fetchCityRecs(city) {
 
 // ── FILTERS ──
 function setFilter(type, val, btn) {
-    if (type==='cat') { activeCat=val; document.querySelectorAll('#cat-pills .f-pill').forEach(b=>b.classList.toggle('active',b.dataset.cat===val)); }
-    if (type==='price') { activePrice=val; document.querySelectorAll('#price-pills .f-pill').forEach(b=>b.classList.toggle('active',b.dataset.price===val)); }
+    if (type==='cat')    { activeCat=val;              document.querySelectorAll('#cat-pills .f-pill').forEach(b=>b.classList.toggle('active',b.dataset.cat===val)); }
+    if (type==='price')  { activePrice=val;            document.querySelectorAll('#price-pills .f-pill').forEach(b=>b.classList.toggle('active',b.dataset.price===val)); }
+    if (type==='rating') { activeRating=parseFloat(val)||0; document.querySelectorAll('#rating-pills .f-pill').forEach(b=>b.classList.toggle('active',b.dataset.rating===val)); }
+    applyFilters();
+}
+function setSort(val, btn) {
+    activeSort = val;
+    document.querySelectorAll('#sort-pills .f-pill').forEach(b=>b.classList.toggle('active',b.dataset.sort===val));
     applyFilters();
 }
 function priceMatch(cost,f) {
@@ -558,9 +651,16 @@ function applyFilters() {
     filtered = allRecs.filter(r => {
         if (activeCat && r.category !== activeCat) return false;
         if (!priceMatch(r.entry_cost, activePrice)) return false;
+        if (activeRating > 0 && (r.rating == null || r.rating < activeRating)) return false;
         return true;
     });
+    if (activeSort === 'rating')     filtered.sort((a,b)=>(b.rating||0)-(a.rating||0));
+    else if (activeSort === 'price_asc')  filtered.sort((a,b)=>(a.entry_cost||0)-(b.entry_cost||0));
+    else if (activeSort === 'price_desc') filtered.sort((a,b)=>(b.entry_cost||0)-(a.entry_cost||0));
+    else if (activeSort === 'pop')   filtered.sort((a,b)=>(b.popularity_score||0)-(a.popularity_score||0));
+    // 'score' → already sorted by recommendation_score desc from API
     document.getElementById('result-count').textContent = filtered.length;
+    document.getElementById('result-count-wrap').style.display = 'inline-block';
     renderGrid();
 }
 
@@ -588,20 +688,21 @@ function showEmpty(msg) {
 function buildCard(r) {
     const sel    = selectedIds.has(r.attraction_id);
     const g      = CAT_GRADS[r.category] || ['#1e293b','#334155'];
+    // recommendation_score is already MinMax-scaled to [0,1] by recommend_attractions(),
+    // so it's a legitimate percentage as-is. The previous *125-then-cap-at-98 inflated
+    // and bunched nearly every card at the same 98% ceiling instead of showing the
+    // actual spread between top and lower matches.
     const scoreW = Math.round((r.recommendation_score||0)*100);
 
-    // Use direct URL if available; otherwise show gradient (no proxy calls)
-    const photoSrc = (!r.photo_reference && r.photo_url) ? r.photo_url : null;
+    const photoSrc = r.photo_reference
+        ? `/api/photo?ref=${encodeURIComponent(r.photo_reference)}&w=600`
+        : (r.photo_url || null);
+    const hasManualUrl = !r.photo_reference && !!r.photo_url;
     const photoHtml = photoSrc
         ? `<img src="${photoSrc}" alt="${esc(r.name)}"
                onload="_onPhotoLoad(this)"
-               onerror="_onPhotoErr(this, true)">`
-        : `<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
-                       background:linear-gradient(145deg,${g[0]},${g[1]});padding:2rem;text-align:center;">
-               <div style="font-size:1.1rem;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.55);margin-bottom:.8rem;">${esc(cap(r.category))}</div>
-               <div style="font-size:1.9rem;font-weight:900;color:#fff;line-height:1.25;">${esc(r.name)}</div>
-               <div style="font-size:1.25rem;color:rgba(255,255,255,.55);margin-top:.5rem;">${esc(r.city||'')}</div>
-           </div>`;
+               onerror="_onPhotoErr(this,${hasManualUrl})">`
+        : ``;
 
     const starsHtml = r.rating
         ? `<span class="att-stars">${'★'.repeat(Math.floor(r.rating))}${(r.rating%1)>=.5?'½':''}</span><span class="att-rval">${r.rating.toFixed(1)}</span>`
@@ -609,11 +710,16 @@ function buildCard(r) {
 
     const card = document.createElement('div');
     card.className = 'att-card' + (sel ? ' selected' : '');
-    // cards always visible; photo loads in place (or onerror shows gradient)
+    if (photoSrc && !sel) card.style.opacity = '0';
     card.dataset.id = r.attraction_id;
     card.innerHTML = `
         <div class="check-badge">✓</div>
-        <div class="att-photo-wrap">
+        <button class="wish-btn${wishedIds.has(r.attraction_id) ? ' wished' : ''}"
+                onclick="event.stopPropagation();toggleWish(${r.attraction_id},this)"
+                title="Save to Wishlist">
+            ${wishedIds.has(r.attraction_id) ? '♥' : '♡'}
+        </button>
+        <div class="att-photo-wrap" style="background:linear-gradient(135deg, ${g[0]}, ${g[1]});">
             ${photoHtml}
             <div class="photo-overlay">
                 <span class="cat-badge">${esc(cap(r.category))}</span>
@@ -629,6 +735,7 @@ function buildCard(r) {
             <div class="att-rating-row">${starsHtml}</div>
             <div class="att-tags">
                 <span class="att-tag att-tag-free">${r.category ? r.category.charAt(0).toUpperCase() + r.category.slice(1) : ''}</span>
+                <span class="att-tag" style="background:#f0fdf4;color:#15803d;font-weight:700;">${r.entry_cost == null ? 'Price N/A' : (r.entry_cost ? 'RM ' + r.entry_cost.toFixed(0) : 'Free')}</span>
             </div>
             <button class="att-add-btn" onclick="event.stopPropagation();toggleCard(${r.attraction_id})">
                 ${sel ? 'Added to Plan' : 'Add to Plan'}
@@ -641,20 +748,10 @@ function buildCard(r) {
 
 function _onPhotoLoad(img) { img.closest('.att-card').style.opacity = '1'; }
 function _onPhotoErr(img, hasManualUrl) {
+    // A broken photo shouldn't hide a real recommendation — fall back to the
+    // category gradient already set on .att-photo-wrap instead of deleting the card.
     const card = img.closest('.att-card');
-    const wrap = img.closest('.att-photo-wrap');
-    if (!card || !wrap) return;
-    const r = allRecs.find(x => x.attraction_id === parseInt(card.dataset.id)) || {};
-    const g = CAT_GRADS[r.category] || ['#1e293b','#334155'];
-    // Replace broken image with gradient fallback
-    wrap.innerHTML = `<div style="width:100%;height:100%;display:flex;flex-direction:column;
-        align-items:center;justify-content:center;background:linear-gradient(145deg,${g[0]},${g[1]});
-        padding:2rem;text-align:center;">
-        <div style="font-size:1.1rem;font-weight:800;text-transform:uppercase;letter-spacing:.14em;
-            color:rgba(255,255,255,.55);margin-bottom:.8rem;">${r.category||''}</div>
-        <div style="font-size:1.9rem;font-weight:900;color:#fff;line-height:1.25;">${r.name||''}</div>
-        <div style="font-size:1.25rem;color:rgba(255,255,255,.55);margin-top:.5rem;">${r.city||''}</div>
-    </div>`;
+    img.remove();
     card.style.opacity = '1';
 }
 

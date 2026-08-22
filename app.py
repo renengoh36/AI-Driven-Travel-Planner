@@ -4,7 +4,7 @@ from sqlalchemy import text
 
 flask_app = create_app()
 
-
+ # Ensures required database tables and attraction columns exist in the current schema.
 def ensure_schema():
     inspector = db.inspect(db.engine)
     tables = inspector.get_table_names()

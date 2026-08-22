@@ -1,7 +1,7 @@
 from datetime import datetime
 from .db import db
 
-
+# Stores user account information and authentication details.
 class User(db.Model):
     __tablename__ = "users"
 
