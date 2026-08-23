@@ -105,7 +105,7 @@ fetch_attractions.py Google Places data-fetching pipeline
 
 ## Team
 
-- **Ngoh Jia Ying** (24WMR08011) — AI/ML: user profiling, hybrid recommendation engine,
+- **Ngoh Jia Ying** — AI/ML: user profiling, hybrid recommendation engine,
   behavioural learning, evaluation
 - **Heng Qian Yu** — Itinerary generation & route optimisation, chatbot
 
